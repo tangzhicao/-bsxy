@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>棉花糖的秘密 - 棉花糖机的历史</title>
+  <style>
+    /* =========================================================
+       1. 全局设计规范 (水彩糖果风 & 毛玻璃系统)
+       ========================================================= */
+    :root {
+      /* 核心主色：奶油白、浅天蓝、马卡龙粉、鹅黄 */
+      --color-cream: #FFF9F0;
+      --color-sky-blue: #E6F2FF;
+      --color-macaron-pink: #FFD6E0;
+      --color-goose-yellow: #FFF3C4;
+      
+      /* 文字色：深灰与暖棕，确保在浅色背景上高可读性 */
+      --text-main: #4A4A4A;
+      --text-deep: #382E2D;
+      --text-muted: #6E6463;
+      --text-light: #8E8483;
+
+      /* 统一毛玻璃规范 */
+      --glass-bg: rgba(255, 255, 255, 0.78);
+      --glass-bg-hover: rgba(255, 255, 255, 0.92);
+      --glass-border: rgba(255, 255, 255, 0.9);
+      --glass-blur: blur(14px);
+      --glass-shadow: 0 12px 32px rgba(150, 130, 140, 0.12), 0 4px 10px rgba(0, 0, 0, 0.03);
+      --glass-shadow-hover: 0 20px 44px rgba(255, 140, 160, 0.22), 0 8px 18px rgba(0, 0, 0, 0.06);
+
+      /* 糖果色功能渐变 */
+      --btn-grad-pink: linear-gradient(135deg, #FFA8BA 0%, #FF708F 100%);
+      --btn-grad-blue: linear-gradient(135deg, #8EC5FC 0%, #60A5FA 100%);
+      --btn-grad-yellow: linear-gradient(135deg, #FFE066 0%, #F59E0B 100%);
+      --accent-pink: #FF708F;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", "Segoe UI", sans-serif;
+      color: var(--text-main);
+      position: relative;
+      background-color: #F8F4EE;
+    }
+
+    /* =========================================================
+       2. 水彩糖果背景层与漂浮粒子
+       ========================================================= */
+    .bg-watercolor-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background-image: url('assets/watercolor-bg.jpg');
+      background-repeat: no-repeat;
+      background-position: center center;
+      background-size: cover;
+      pointer-events: none;
+    }
+
+    .bg-soft-mask {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background: radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.22) 0%, rgba(255, 250, 246, 0.38) 70%, rgba(255, 240, 245, 0.48) 100%);
+      pointer-events: none;
+    }
+
+    .candy-particles {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .particle {
+      position: absolute;
+      border-radius: 999px;
+      opacity: 0.65;
+      animation: floatGentle 8s ease-in-out infinite alternate;
+    }
+    .p-1 { width: 14px; height: 6px; background: #FFB3C6; top: 18%; left: 12%; transform: rotate(25deg); animation-delay: 0s; }
+    .p-2 { width: 12px; height: 5px; background: #BDE0FE; top: 32%; right: 14%; transform: rotate(-30deg); animation-delay: -2s; }
+    .p-3 { width: 15px; height: 6px; background: #FFE6A7; top: 72%; left: 18%; transform: rotate(45deg); animation-delay: -4s; }
+    .p-4 { width: 6px; height: 6px; background: #FFF; border-radius: 50%; box-shadow: 0 0 8px #FFF; top: 24%; right: 26%; animation-delay: -1s; }
+    .p-5 { width: 5px; height: 5px; background: #FFF; border-radius: 50%; box-shadow: 0 0 6px #FFF; top: 65%; right: 20%; animation-delay: -3s; }
+
+    @keyframes floatGentle {
+      0% { transform: translateY(0) rotate(0deg); opacity: 0.55; }
+      100% { transform: translateY(-12px) rotate(8deg); opacity: 0.85; }
+    }
+
+    /* =========================================================
+       3. 页面主自适应容器 (16:9 / 1920x1080 优化)
+       ========================================================= */
+    .presentation-container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 16px 48px 14px;
+      max-width: 1720px;
+      margin: 0 auto;
+    }
+
+    /* 顶部导航与标签 */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+
+    .tag-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 18px;
+      background: var(--glass-bg);
+      border: 1.5px solid var(--glass-border);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+      box-shadow: 0 4px 14px rgba(150, 130, 140, 0.08);
+      letter-spacing: 0.5px;
+    }
+    .tag-badge .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #FF8FA3;
+      box-shadow: 0 0 0 3px rgba(255, 143, 163, 0.25);
+    }
+
+    .page-indicator-top {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      padding: 6px 18px;
+      border-radius: 999px;
+      border: 1.5px solid var(--glass-border);
+      box-shadow: 0 4px 14px rgba(150, 130, 140, 0.08);
+      letter-spacing: 1px;
+    }
+
+    /* =========================================================
+       4. 标题区
+       ========================================================= */
+    .hero-section {
+      text-align: center;
+      margin-top: -2px;
+    }
+
+    .main-title {
+      font-size: clamp(32px, 3.6vw, 46px);
+      font-weight: 800;
+      color: var(--text-deep);
+      letter-spacing: 2px;
+      margin-bottom: 5px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      text-shadow: 0 2px 12px rgba(255, 255, 255, 0.95), 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .sparkle-icon {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      color: #FFB703;
+      filter: drop-shadow(0 2px 4px rgba(255, 183, 3, 0.4));
+      animation: spinTwinkle 6s linear infinite;
+    }
+    @keyframes spinTwinkle {
+      0% { transform: rotate(0deg) scale(0.9); }
+      50% { transform: rotate(180deg) scale(1.15); }
+      100% { transform: rotate(360deg) scale(0.9); }
+    }
+
+    .subtitle {
+      font-size: clamp(15px, 1.4vw, 18px);
+      font-weight: 600;
+      color: #554847;
+      letter-spacing: 1px;
+      text-shadow: 0 1px 8px rgba(255, 255, 255, 0.9);
+    }
+
+    /* =========================================================
+       5. 扑克牌 3D 翻转时间轴 (水平四节点)
+       ========================================================= */
+    .timeline-container {
+      position: relative;
+      width: 100%;
+      max-width: 1560px;
+      margin: 6px auto 0;
+      padding: 18px 0 6px;
+    }
+
+    /* 水平渐变时间轴连接轨道 */
+    .timeline-track {
+      position: absolute;
+      top: 42px;
+      left: 10%;
+      right: 10%;
+      height: 4px;
+      background: linear-gradient(90deg, #FFB3C6 0%, #BDE0FE 50%, #FFE6A7 85%, #FF708F 100%);
+      border-radius: 999px;
+      box-shadow: 0 0 10px rgba(255, 143, 163, 0.4);
+      z-index: 1;
+    }
+
+    /* 4张卡片横向排列容器 */
+    .timeline-cards {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: clamp(14px, 1.8vw, 26px);
+      align-items: stretch;
+    }
+
+    /* 3D 翻牌容器外壳 (建立 3D 透视视距) */
+    .timeline-card {
+      perspective: 1200px;
+      -webkit-perspective: 1200px;
+      background: transparent;
+      border: none;
+      border-radius: 20px;
+      height: clamp(480px, 56vh, 525px);
+      cursor: pointer;
+      position: relative;
+      animation: cardEntrance 0.6s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+    }
+
+    .timeline-card:nth-child(1) { animation-delay: 0.05s; }
+    .timeline-card:nth-child(2) { animation-delay: 0.18s; }
+    .timeline-card:nth-child(3) { animation-delay: 0.30s; }
+    .timeline-card:nth-child(4) { animation-delay: 0.42s; }
+
+    @keyframes cardEntrance {
+      0% { opacity: 0; transform: translateY(30px) scale(0.96); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* 3D 旋转内胆：承载正反两面 */
+    .card-flip-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      -webkit-transform-style: preserve-3d;
+      transition: transform 0.9s cubic-bezier(0.4, 0.0, 0.2, 1);
+      border-radius: 20px;
+    }
+
+    /* 当添加 flipped 类时，3D 旋转 180 度翻开背面 */
+    .timeline-card.flipped .card-flip-inner {
+      transform: rotateY(180deg);
+    }
+
+    /* 正反面公共样式 */
+    .flip-front,
+    .flip-back {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      border-radius: 20px;
+      box-shadow: var(--glass-shadow);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ---------------------------------------------------------
+       正面 (.flip-front)：Praashoo7 重力球管道动效
+       --------------------------------------------------------- */
+    .flip-front {
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1.8px solid var(--glass-border);
+      padding: 18px 16px 16px;
+      align-items: center;
+      justify-content: space-between;
+      transform: rotateY(0deg);
+      transition: border-color 0.35s ease, box-shadow 0.35s ease, transform 0.35s ease;
+    }
+
+    .timeline-card:not(.flipped):hover .flip-front {
+      border-color: rgba(255, 175, 195, 0.8);
+      box-shadow: var(--glass-shadow-hover);
+      transform: translateY(-6px) scale(1.015);
+    }
+
+    /* 正面头部步骤标签 */
+    .front-header {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 2px 6px;
+    }
+    .front-step-tag {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: #FF708F;
+      background: rgba(255, 230, 238, 0.85);
+      padding: 4px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 175, 195, 0.5);
+      box-shadow: 0 2px 8px rgba(255, 112, 143, 0.15);
+    }
+    .front-status-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: #FFB703;
+      box-shadow: 0 0 0 3px rgba(255, 183, 3, 0.25);
+      animation: pulseDot 2.2s infinite ease-in-out;
+    }
+    @keyframes pulseDot {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.25); opacity: 1; box-shadow: 0 0 8px #FFB703; }
+    }
+
+    /* Praashoo7 动效容器与缩放 */
+    .candy-loader-wrap {
+      flex: 1;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      margin: 8px 0;
+    }
+
+    /* Uiverse Praashoo7 核心动效 (糖果粉白主题) */
+    .main {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11.5px; /* 全局缩放控制器：11.5px 完美贴合卡片比例 */
+      position: relative;
+      width: 14em;
+      height: 14em;
+    }
+
+    .loaders,
+    .loadersB {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: absolute;
+    }
+
+    /* 糖果风管道：浅粉白底色 + 柔和糖果内阴影与渐变遮罩 */
+    .loader {
+      position: absolute;
+      width: 1.15em;
+      height: 13em;
+      border-radius: 50px;
+      background: #FFF5F7;
+      border: 1px solid #FFE4EC;
+      box-shadow: inset 0 0 4px rgba(255, 175, 195, 0.2);
+    }
+    .loader:after {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1.15em;
+      height: 5em;
+      background: #FFF5F7;
+      border-radius: 50px;
+      border: 1px solid #FFE4EC;
+      box-shadow:
+        inset 3px 3px 10px rgba(255, 182, 193, 0.35),
+        inset -3px -3px 10px rgba(255, 255, 255, 0.9);
+      mask-image: linear-gradient(
+        to bottom,
+        black calc(100% - 48px),
+        transparent 100%
+      );
+      -webkit-mask-image: linear-gradient(
+        to bottom,
+        black calc(100% - 48px),
+        transparent 100%
+      );
+    }
+    .loader::before {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 1.15em;
+      height: 4.5em;
+      background: #FFF5F7;
+      border-radius: 50px;
+      border: 1px solid #FFE4EC;
+      box-shadow:
+        inset 3px 3px 10px rgba(255, 182, 193, 0.35),
+        inset -3px -3px 10px rgba(255, 255, 255, 0.9);
+      mask-image: linear-gradient(
+        to top,
+        black calc(100% - 48px),
+        transparent 100%
+      );
+      -webkit-mask-image: linear-gradient(
+        to top,
+        black calc(100% - 48px),
+        transparent 100%
+      );
+    }
+    .loaderA {
+      position: absolute;
+      width: 1.15em;
+      height: 13em;
+      border-radius: 50px;
+      background: transparent;
+    }
+
+    /* 糖果风小球：草莓马卡龙粉渐变 + 晶莹立体质感 */
+    .ball0,
+    .ball1,
+    .ball2,
+    .ball3,
+    .ball4,
+    .ball5,
+    .ball6,
+    .ball7,
+    .ball8,
+    .ball9 {
+      width: 1.15em;
+      height: 1.15em;
+      box-shadow:
+        rgba(219, 68, 107, 0.25) 0px -6px 8px 0px inset,
+        rgba(255, 140, 168, 0.3) 0px -10px 12px 0px inset,
+        rgba(255, 255, 255, 0.8) 0px 3px 4px 0px inset,
+        rgba(255, 112, 143, 0.25) 0px 4px 8px,
+        rgba(255, 182, 193, 0.2) 0px 8px 16px;
+      border-radius: 50%;
+      transition: transform 800ms cubic-bezier(1, -0.4, 0, 1.4);
+      background: linear-gradient(135deg, #FF99AF 0%, #FF5C8A 100%);
+      animation: 3.63s move ease-in-out infinite;
+    }
+
+    .loader:nth-child(2) { transform: rotate(20deg); }
+    .loader:nth-child(3) { transform: rotate(40deg); }
+    .loader:nth-child(4) { transform: rotate(60deg); }
+    .loader:nth-child(5) { transform: rotate(80deg); }
+    .loader:nth-child(6) { transform: rotate(100deg); }
+    .loader:nth-child(7) { transform: rotate(120deg); }
+    .loader:nth-child(8) { transform: rotate(140deg); }
+    .loader:nth-child(9) { transform: rotate(160deg); }
+
+    .loaderA:nth-child(2) { transform: rotate(20deg); }
+    .loaderA:nth-child(3) { transform: rotate(40deg); }
+    .loaderA:nth-child(4) { transform: rotate(60deg); }
+    .loaderA:nth-child(5) { transform: rotate(80deg); }
+    .loaderA:nth-child(6) { transform: rotate(100deg); }
+    .loaderA:nth-child(7) { transform: rotate(120deg); }
+    .loaderA:nth-child(8) { transform: rotate(140deg); }
+    .loaderA:nth-child(9) { transform: rotate(160deg); }
+
+    .ball1 { animation-delay: 0.2s; }
+    .ball2 { animation-delay: 0.4s; }
+    .ball3 { animation-delay: 0.6s; }
+    .ball4 { animation-delay: 0.8s; }
+    .ball5 { animation-delay: 1s; }
+    .ball6 { animation-delay: 1.2s; }
+    .ball7 { animation-delay: 1.4s; }
+    .ball8 { animation-delay: 1.6s; }
+    .ball9 { animation-delay: 1.8s; }
+
+    @keyframes move {
+      0% { transform: translateY(0em); }
+      50% { transform: translateY(11.85em); }
+      100% { transform: translateY(0em); }
+    }
+
+    /* 正面底部提示文字 */
+    .front-footer-hint {
+      font-size: 13px;
+      font-weight: 700;
+      color: #7A6668;
+      background: rgba(255, 255, 255, 0.72);
+      padding: 6px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 215, 225, 0.9);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 8px rgba(150, 130, 140, 0.08);
+      transition: all 0.25s ease;
+    }
+    .timeline-card:not(.flipped):hover .front-footer-hint {
+      background: #FFF;
+      color: #FF5C8A;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 112, 143, 0.25);
+    }
+    .sparkle-mini {
+      color: #FFB703;
+      font-size: 14px;
+    }
+
+    /* ---------------------------------------------------------
+       背面 (.flip-back)：历史档案内容卡片
+       --------------------------------------------------------- */
+    .flip-back {
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1.8px solid var(--glass-border);
+      padding: 18px 16px 16px;
+      transform: rotateY(180deg);
+      cursor: default;
+      transition: border-color 0.35s ease, box-shadow 0.35s ease, transform 0.35s ease;
+    }
+
+    .timeline-card.flipped:hover .flip-back {
+      border-color: rgba(255, 175, 195, 0.7);
+      box-shadow: var(--glass-shadow-hover);
+      transform: rotateY(180deg) translateY(-6px);
+    }
+
+    /* 年份与节点圆点头部 */
+    .card-header-node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 8px;
+      position: relative;
+    }
+
+    .node-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #FFF;
+      border: 3.5px solid #FF708F;
+      box-shadow: 0 0 0 3px rgba(255, 112, 143, 0.25), 0 2px 6px rgba(0, 0, 0, 0.1);
+      margin-bottom: 8px;
+      transition: transform 0.3s ease;
+    }
+    .timeline-card.flipped:hover .node-dot {
+      transform: scale(1.25);
+      background: #FF708F;
+      border-color: #FFF;
+    }
+
+    .year-pill {
+      display: inline-block;
+      padding: 3px 14px;
+      border-radius: 999px;
+      font-size: 14.5px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: #FFF;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .pill-1904 { background: linear-gradient(135deg, #FF8FA3, #FF5C8A); }
+    .pill-1940 { background: linear-gradient(135deg, #64B5F6, #1E88E5); }
+    .pill-1970 { background: linear-gradient(135deg, #FFB74D, #FB8C00); }
+    .pill-today { background: linear-gradient(135deg, #BA68C8, #8E24AA); }
+
+    .node-heading {
+      font-size: 16.5px;
+      font-weight: 700;
+      color: var(--text-deep);
+      margin-top: 6px;
+      text-align: center;
+      letter-spacing: 0.5px;
+    }
+
+    /* 媒体/配图区域 */
+    .node-media-box {
+      width: 100%;
+      height: 180px;
+      border-radius: 14px;
+      overflow: hidden;
+      margin: 8px 0 10px;
+      background: rgba(255, 255, 255, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      position: relative;
+      display: flex;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.03);
+    }
+
+    /* 单张大图展示 */
+    .single-image-wrap {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      cursor: zoom-in;
+      background: #F8F4EE;
+      overflow: hidden;
+    }
+    .single-image-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 30%;
+      display: block;
+      transition: transform 0.4s ease;
+    }
+    .single-image-wrap:hover img {
+      transform: scale(1.06);
+    }
+    .single-caption-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, transparent 100%);
+      color: #FFF;
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 16px 10px 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    .zoom-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 10.5px;
+      opacity: 0.9;
+      background: rgba(255, 255, 255, 0.25);
+      padding: 2px 6px;
+      border-radius: 8px;
+      backdrop-filter: blur(4px);
+    }
+
+    /* 节点文字描述 */
+    .node-desc {
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text-main);
+      text-align: left;
+      margin-top: auto;
+      background: rgba(255, 255, 255, 0.6);
+      padding: 9px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.75);
+    }
+    .node-desc strong {
+      color: var(--text-deep);
+    }
+
+    /* =========================================================
+       6. 底部引言与提问引导区
+       ========================================================= */
+    .guide-prompt-section {
+      text-align: center;
+      margin: 4px auto 6px;
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1.5px solid var(--glass-border);
+      padding: 12px 34px;
+      border-radius: 20px;
+      box-shadow: 0 6px 20px rgba(150, 130, 140, 0.08);
+      display: flex;
+      align-items: center;
+      gap: 22px;
+    }
+
+    .prompt-text {
+      font-size: clamp(17px, 1.7vw, 21px);
+      font-weight: 800;
+      color: var(--text-deep);
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .prompt-icon {
+      font-size: 22px;
+    }
+
+    .next-page-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 24px;
+      border-radius: 999px;
+      background: var(--btn-grad-pink);
+      color: #FFF;
+      font-size: 15px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(255, 112, 143, 0.35);
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .next-page-btn:hover {
+      transform: translateY(-2px) scale(1.04);
+      box-shadow: 0 6px 22px rgba(255, 112, 143, 0.45);
+      filter: brightness(1.03);
+    }
+    .next-page-btn:active {
+      transform: translateY(1px) scale(0.97);
+    }
+
+    /* =========================================================
+       7. 统一风格页脚导航栏 (毛玻璃一体化 Dock)
+       ========================================================= */
+    .footer-bar {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 6px;
+      margin-top: 2px;
+    }
+
+    .nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 20px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 600;
+      border: 1.5px solid var(--glass-border);
+      cursor: pointer;
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      color: var(--text-main);
+      box-shadow: 0 4px 14px rgba(150, 130, 140, 0.08);
+      transition: all 0.25s ease;
+      text-decoration: none;
+    }
+    .nav-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(255, 112, 143, 0.2);
+      background: #FFFFFF;
+      color: #FF708F;
+      border-color: rgba(255, 214, 224, 0.9);
+    }
+    .nav-btn:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    .nav-center-hint {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-shadow: 0 1px 6px rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.5);
+      padding: 5px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.7);
+    }
+    .kbd-pill {
+      background: #FFF;
+      border: 1px solid #E2D9D9;
+      border-bottom: 2px solid #CFC2C2;
+      border-radius: 5px;
+      padding: 1px 6px;
+      font-size: 11.5px;
+      font-family: inherit;
+      color: #FF5C8A;
+      font-weight: 700;
+    }
+
+    .page-indicator-bottom {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      padding: 7px 20px;
+      border-radius: 999px;
+      border: 1.5px solid var(--glass-border);
+      box-shadow: 0 4px 14px rgba(150, 130, 140, 0.08);
+      letter-spacing: 1px;
+    }
+
+    /* =========================================================
+       8. 高清大图查看模态框 (Lightbox)
+       ========================================================= */
+    .lightbox-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(30, 20, 25, 0.65);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      padding: 40px;
+    }
+    .lightbox-modal.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .lightbox-content {
+      background: rgba(255, 255, 255, 0.92);
+      border-radius: 24px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+      border: 2px solid rgba(255, 255, 255, 0.9);
+      max-width: 900px;
+      max-height: 88vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transform: scale(0.92);
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .lightbox-modal.active .lightbox-content {
+      transform: scale(1);
+    }
+    .lightbox-img-box {
+      width: 100%;
+      height: 520px;
+      background: #111;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .lightbox-img-box img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    .lightbox-footer {
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .lightbox-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-deep);
+    }
+    .lightbox-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+    .lightbox-close-btn {
+      background: #FFE2E9;
+      border: none;
+      color: #FF5C8A;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .lightbox-close-btn:hover {
+      background: #FF5C8A;
+      color: #FFF;
+      transform: rotate(90deg);
+    }
+
+    /* 吐司轻提示 */
+    .toast-tip {
+      position: fixed;
+      bottom: 78px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(56, 46, 45, 0.92);
+      color: #FFF;
+      padding: 9px 22px;
+      border-radius: 999px;
+      font-size: 13.5px;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 999;
+      letter-spacing: 0.5px;
+    }
+    .toast-tip.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. 统一水彩糖果背景层 -->
+  <div class="bg-watercolor-layer"></div>
+  <div class="bg-soft-mask"></div>
+
+  <!-- 漂浮糖果与光点微动画 -->
+  <div class="candy-particles">
+    <div class="particle p-1"></div>
+    <div class="particle p-2"></div>
+    <div class="particle p-3"></div>
+    <div class="particle p-4"></div>
+    <div class="particle p-5"></div>
+  </div>
+
+  <!-- 2. 主页面容器 -->
+  <div class="presentation-container">
+
+    <!-- 顶部状态栏 -->
+    <div class="top-bar">
+      <div class="tag-badge">
+        <span class="dot"></span>
+        <span>第一部分 · 棉花糖的化学与离心力</span>
+      </div>
+      <div class="page-indicator-top">第 2 页 / 历史溯源</div>
+    </div>
+
+    <!-- 标题区 -->
+    <div class="hero-section">
+      <h1 class="main-title">
+        <svg class="sparkle-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z"/>
+        </svg>
+        <span>棉花糖机是怎么来的？</span>
+        <svg class="sparkle-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z"/>
+        </svg>
+      </h1>
+      <p class="subtitle">从“仙女丝”到今天的甜品神器，一段甜蜜的发明史</p>
+    </div>
+
+    <!-- 中部扑克牌 3D 翻转时间轴 (4个关键节点) -->
+    <div class="timeline-container">
+      <!-- 贯穿水平时间轴线 -->
+      <div class="timeline-track"></div>
+
+      <div class="timeline-cards" id="timelineCards">
+
+        <!-- ======================= 节点 1：1904年 ======================= -->
+        <div class="timeline-card" data-index="0">
+          <div class="card-flip-inner">
+            <!-- 正面：糖果重力小球动效 -->
+            <div class="flip-front">
+              <div class="front-header">
+                <span class="front-step-tag">STAGE 01</span>
+                <span class="front-status-dot"></span>
+              </div>
+              <div class="candy-loader-wrap">
+                <div class="main">
+                  <div class="loaders">
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                  </div>
+                  <div class="loadersB">
+                    <div class="loaderA"><div class="ball0"></div></div>
+                    <div class="loaderA"><div class="ball1"></div></div>
+                    <div class="loaderA"><div class="ball2"></div></div>
+                    <div class="loaderA"><div class="ball3"></div></div>
+                    <div class="loaderA"><div class="ball4"></div></div>
+                    <div class="loaderA"><div class="ball5"></div></div>
+                    <div class="loaderA"><div class="ball6"></div></div>
+                    <div class="loaderA"><div class="ball7"></div></div>
+                    <div class="loaderA"><div class="ball8"></div></div>
+                  </div>
+                </div>
+              </div>
+              <div class="front-footer-hint">
+                <span class="sparkle-mini">✨</span>
+                <span>按空格或点击揭秘</span>
+              </div>
+            </div>
+
+            <!-- 背面：历史档案内容 -->
+            <div class="flip-back">
+              <div class="card-header-node">
+                <div class="node-dot"></div>
+                <span class="year-pill pill-1904">1904 年</span>
+                <div class="node-heading">“仙女丝”横空出世</div>
+              </div>
+              
+              <div class="node-media-box">
+                <div class="single-image-wrap" onclick="openLightbox('assets/1904_floss_machine_crowd.jpg', '1904年 · 早期电动棉花糖机制作实况', '历史纪实：手艺师傅手持木棒在旋转出糖深盆中卷取蓬松糖絮，周围聚集着大量好奇围观的人群')">
+                  <img src="assets/1904_floss_machine_crowd.jpg" alt="1904早期棉花糖机制作现场" style="object-position: center 25%;">
+                  <div class="single-caption-bar">
+                    <span>早期机器现场拉丝</span>
+                    <span class="zoom-hint">🔍 点击放大</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="node-desc">
+                美国牙医<strong>威廉·莫里森</strong>与糖果商<strong>约翰·沃顿</strong>发明了世界上第一台电动棉花糖机，命名为<strong>“仙女丝”（Fairy Floss）</strong>。在1904年世博会上一炮而红，创下售出68,655盒的轰动纪录！
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======================= 节点 2：1940年代 ======================= -->
+        <div class="timeline-card" data-index="1">
+          <div class="card-flip-inner">
+            <!-- 正面：糖果重力小球动效 -->
+            <div class="flip-front">
+              <div class="front-header">
+                <span class="front-step-tag">STAGE 02</span>
+                <span class="front-status-dot"></span>
+              </div>
+              <div class="candy-loader-wrap">
+                <div class="main">
+                  <div class="loaders">
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                  </div>
+                  <div class="loadersB">
+                    <div class="loaderA"><div class="ball0"></div></div>
+                    <div class="loaderA"><div class="ball1"></div></div>
+                    <div class="loaderA"><div class="ball2"></div></div>
+                    <div class="loaderA"><div class="ball3"></div></div>
+                    <div class="loaderA"><div class="ball4"></div></div>
+                    <div class="loaderA"><div class="ball5"></div></div>
+                    <div class="loaderA"><div class="ball6"></div></div>
+                    <div class="loaderA"><div class="ball7"></div></div>
+                    <div class="loaderA"><div class="ball8"></div></div>
+                  </div>
+                </div>
+              </div>
+              <div class="front-footer-hint">
+                <span class="sparkle-mini">✨</span>
+                <span>按空格或点击揭秘</span>
+              </div>
+            </div>
+
+            <!-- 背面：历史档案内容 -->
+            <div class="flip-back">
+              <div class="card-header-node">
+                <div class="node-dot"></div>
+                <span class="year-pill pill-1940">1940 年代</span>
+                <div class="node-heading">席卷游乐园与马戏团</div>
+              </div>
+              
+              <div class="node-media-box">
+                <div class="single-image-wrap" onclick="openLightbox('assets/1940_carnival_stall.png', '1940年代游乐场实拍 · 少年品尝棉花糖', '档案实录：户外游乐集市玻璃展柜前的棉花糖摊位，身着制服的少年正捧着刚做好的棉花糖')">
+                  <img src="assets/1940_carnival_stall.png" alt="1940年代集市棉花糖摊" style="object-position: center 25%;">
+                  <div class="single-caption-bar">
+                    <span>露天集市棉花糖摊</span>
+                    <span class="zoom-hint">🔍 点击放大</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="node-desc">
+                棉花糖机全面进入游乐园、狂欢节与马戏团，成为<strong>嘉年华标志性的甜蜜象征</strong>。1949年弹簧减震底座的发明，彻底解决了机器剧烈震动的难题，让街头快速现做现卖成为可能。
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======================= 节点 3：1970年代 ======================= -->
+        <div class="timeline-card" data-index="2">
+          <div class="card-flip-inner">
+            <!-- 正面：糖果重力小球动效 -->
+            <div class="flip-front">
+              <div class="front-header">
+                <span class="front-step-tag">STAGE 03</span>
+                <span class="front-status-dot"></span>
+              </div>
+              <div class="candy-loader-wrap">
+                <div class="main">
+                  <div class="loaders">
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                  </div>
+                  <div class="loadersB">
+                    <div class="loaderA"><div class="ball0"></div></div>
+                    <div class="loaderA"><div class="ball1"></div></div>
+                    <div class="loaderA"><div class="ball2"></div></div>
+                    <div class="loaderA"><div class="ball3"></div></div>
+                    <div class="loaderA"><div class="ball4"></div></div>
+                    <div class="loaderA"><div class="ball5"></div></div>
+                    <div class="loaderA"><div class="ball6"></div></div>
+                    <div class="loaderA"><div class="ball7"></div></div>
+                    <div class="loaderA"><div class="ball8"></div></div>
+                  </div>
+                </div>
+              </div>
+              <div class="front-footer-hint">
+                <span class="sparkle-mini">✨</span>
+                <span>按空格或点击揭秘</span>
+              </div>
+            </div>
+
+            <!-- 背面：历史档案内容 -->
+            <div class="flip-back">
+              <div class="card-header-node">
+                <div class="node-dot"></div>
+                <span class="year-pill pill-1970">1970 年代</span>
+                <div class="node-heading">飞入寻常百姓家</div>
+              </div>
+              
+              <div class="node-media-box">
+                <div class="single-image-wrap" onclick="openLightbox('assets/1970_nintendo_family.png', '1970年任天堂家用棉花糖机说明书封面', '历史记录：任天堂推出的家用棉花糖机（Candy Machine），记录了一家人围在餐桌前自制棉花糖的温馨场景')">
+                  <img src="assets/1970_nintendo_family.png" alt="1970年家庭棉花糖机说明书" style="object-fit: contain; background: #FFF;">
+                  <div class="single-caption-bar">
+                    <span>家庭围桌自制说明书</span>
+                    <span class="zoom-hint">🔍 点击放大</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="node-desc">
+                小型电机与电热丝技术的突破，催生了<strong>家用桌面式棉花糖机</strong>。像任天堂等厂商在1970年推出了儿童与家庭专用机，让普通家庭在餐桌前就能享受自己动手做棉花糖的乐趣。
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======================= 节点 4：今天 ======================= -->
+        <div class="timeline-card" data-index="3">
+          <div class="card-flip-inner">
+            <!-- 正面：糖果重力小球动效 -->
+            <div class="flip-front">
+              <div class="front-header">
+                <span class="front-step-tag">STAGE 04</span>
+                <span class="front-status-dot"></span>
+              </div>
+              <div class="candy-loader-wrap">
+                <div class="main">
+                  <div class="loaders">
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                    <div class="loader"></div>
+                  </div>
+                  <div class="loadersB">
+                    <div class="loaderA"><div class="ball0"></div></div>
+                    <div class="loaderA"><div class="ball1"></div></div>
+                    <div class="loaderA"><div class="ball2"></div></div>
+                    <div class="loaderA"><div class="ball3"></div></div>
+                    <div class="loaderA"><div class="ball4"></div></div>
+                    <div class="loaderA"><div class="ball5"></div></div>
+                    <div class="loaderA"><div class="ball6"></div></div>
+                    <div class="loaderA"><div class="ball7"></div></div>
+                    <div class="loaderA"><div class="ball8"></div></div>
+                  </div>
+                </div>
+              </div>
+              <div class="front-footer-hint">
+                <span class="sparkle-mini">✨</span>
+                <span>按空格或点击揭秘</span>
+              </div>
+            </div>
+
+            <!-- 背面：历史档案内容 -->
+            <div class="flip-back">
+              <div class="card-header-node">
+                <div class="node-dot"></div>
+                <span class="year-pill pill-today">今 天</span>
+                <div class="node-heading">智能化与花样拉丝</div>
+              </div>
+              
+              <div class="node-media-box">
+                <div class="single-image-wrap" onclick="openLightbox('assets/today_smart_robot_vending.jpg', '现代全自动花样棉花糖机器人', '现代科技：内置精密机械臂与多色温控系统，能够自动完成拉丝、卷棒并在数分钟内雕刻出彩色花朵造型')">
+                  <img src="assets/today_smart_robot_vending.jpg" alt="现代智能无人花样棉花糖售卖机">
+                  <div class="single-caption-bar">
+                    <span>智能机械臂自动花样机</span>
+                    <span class="zoom-hint">🔍 点击放大</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="node-desc">
+                棉花糖机进化出了<strong>全自动机器人售卖终端</strong>与精准商用机。机械臂不仅能自动卷糖，还能通过气流精密控制吹出缤纷花朵造型，这台神奇的设备也成了我们小组的<strong>核心探究对象</strong>！
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- 底部提问与引导语 -->
+    <div class="guide-prompt-section">
+      <div class="prompt-text">
+        <span class="prompt-icon">🤔</span>
+        <span>从百年前的“仙女丝”到今天的智能机器人，这台机器里到底藏着什么科学原理？</span>
+      </div>
+      <button class="next-page-btn" id="startExploreBtn">
+        <span>进入探究</span>
+        <span>→</span>
+      </button>
+    </div>
+
+    <!-- 底部导航 Dock 栏 -->
+    <div class="footer-bar">
+      <a href="index.html" class="nav-btn">
+        <span>←</span>
+        <span>上一页 (课程总览)</span>
+      </a>
+
+      <div class="nav-center-hint">
+        <span>🎮 控制说明：按 <span class="kbd-pill">Space 空格</span> 逐张揭秘</span>
+        <span>|</span>
+        <span>按 <span class="kbd-pill">Esc</span> 全部展示</span>
+        <span>|</span>
+        <span>点击图片放大</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <button class="nav-btn" id="navNextBtn">
+          <span>下一页</span>
+          <span>→</span>
+        </button>
+        <div class="page-indicator-bottom">2 / 12</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 3. 图片放大查看弹窗 (Lightbox) -->
+  <div class="lightbox-modal" id="lightboxModal" onclick="closeLightbox(event)">
+    <div class="lightbox-content" onclick="event.stopPropagation()">
+      <div class="lightbox-img-box">
+        <img id="lightboxImg" src="" alt="放大查看">
+      </div>
+      <div class="lightbox-footer">
+        <div>
+          <div class="lightbox-title" id="lightboxTitle">标题</div>
+          <div class="lightbox-desc" id="lightboxDesc">描述说明</div>
+        </div>
+        <button class="lightbox-close-btn" onclick="closeLightbox()">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 轻提示 (Toast) -->
+  <div class="toast-tip" id="toastTip">提示信息</div>
+
+  <script>
+    // =========================================================
+    // 扑克牌翻面分步播放控制逻辑 (Step-by-Step 3D Flip)
+    // =========================================================
+    const cards = Array.from(document.querySelectorAll('.timeline-card'));
+    let currentIndex = 0; // 记录当前翻到哪一张卡片 (0 ~ 4)
+
+    // 翻开下一张未翻的卡片
+    function flipNext() {
+      // 找到第一张尚未翻面的卡片
+      const nextCard = cards.find(card => !card.classList.contains('flipped'));
+      if (nextCard) {
+        nextCard.classList.add('flipped');
+        updateCurrentIndex();
+        const yearTag = nextCard.querySelector('.year-pill')?.textContent.trim() || '历史节点';
+        showToast(`✨ [${yearTag}] 历史档案已揭秘！`);
+      } else {
+        showToast('🎉 4个历史阶段已全部揭开！点击图片可查看高清细节');
+      }
+    }
+
+    // 紧急备用：全部一键翻开 (按 ESC 触发)
+    function flipAll() {
+      cards.forEach(card => card.classList.add('flipped'));
+      updateCurrentIndex();
+      showToast('⚡ 所有历史卡片已全部翻开！');
+    }
+
+    // 更新索引进度
+    function updateCurrentIndex() {
+      currentIndex = cards.filter(card => card.classList.contains('flipped')).length;
+    }
+
+    // =========================================================
+    // 页面点击事件处理 (区分交互元素与空白翻牌区域)
+    // =========================================================
+    document.addEventListener('click', (e) => {
+      // 1. 如果点击的是按钮、链接、图片放大查看区或灯箱弹窗，绝对不触发翻牌
+      if (e.target.closest('button, a, .single-image-wrap, .lightbox-modal, input, select')) {
+        return;
+      }
+
+      // 2. 如果点击的是单张具体的未翻面卡片，直接翻开这张卡片
+      const clickedCard = e.target.closest('.timeline-card');
+      if (clickedCard && !clickedCard.classList.contains('flipped')) {
+        clickedCard.classList.add('flipped');
+        updateCurrentIndex();
+        const yearTag = clickedCard.querySelector('.year-pill')?.textContent.trim() || '历史节点';
+        showToast(`✨ [${yearTag}] 历史档案已揭秘！`);
+        return;
+      }
+
+      // 3. 点击其它任何空白处：如果还有卡片未翻开，则按顺序翻开下一张
+      if (cards.some(card => !card.classList.contains('flipped'))) {
+        flipNext();
+      }
+    });
+
+    // =========================================================
+    // 键盘快捷键监听 (Space / Esc / 箭头方向键)
+    // =========================================================
+    document.addEventListener('keydown', (e) => {
+      // 1. ESC 键应急逻辑：优先关闭大图 Lightbox；若大图未打开，则一键全部翻牌
+      if (e.key === 'Escape' || e.code === 'Escape') {
+        if (lightboxModal.classList.contains('active')) {
+          closeLightbox();
+        } else {
+          flipAll();
+        }
+        return;
+      }
+
+      // 若 Lightbox 打开中，暂停处理其他翻牌键
+      if (lightboxModal.classList.contains('active')) return;
+
+      // 2. 空格键 (Space) 逐张翻开
+      if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault(); // 阻止浏览器默认页面滚动！
+        flipNext();
+        return;
+      }
+
+      // 3. 方向箭头导航
+      if (e.key === 'ArrowLeft') {
+        window.location.href = 'index.html';
+      } else if (e.key === 'ArrowRight') {
+        document.getElementById('startExploreBtn').click();
+      }
+    });
+
+    // =========================================================
+    // Lightbox 图片高清放大逻辑
+    // =========================================================
+    const lightboxModal = document.getElementById('lightboxModal');
+    const lightboxImg = document.getElementById('lightboxImg');
+    const lightboxTitle = document.getElementById('lightboxTitle');
+    const lightboxDesc = document.getElementById('lightboxDesc');
+    const toastTip = document.getElementById('toastTip');
+    let toastTimer = null;
+
+    function openLightbox(src, title, desc) {
+      lightboxImg.src = src;
+      lightboxTitle.textContent = title || '历史图片';
+      lightboxDesc.textContent = desc || '';
+      lightboxModal.classList.add('active');
+    }
+
+    function closeLightbox() {
+      lightboxModal.classList.remove('active');
+    }
+
+    // 吐司轻提示
+    function showToast(msg) {
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTip.textContent = msg;
+      toastTip.classList.add('show');
+      toastTimer = setTimeout(() => {
+        toastTip.classList.remove('show');
+      }, 2400);
+    }
+
+    document.getElementById('startExploreBtn').addEventListener('click', () => {
+      window.location.href = 'page3.html';
+    });
+
+    document.getElementById('navNextBtn').addEventListener('click', () => {
+      window.location.href = 'page3.html';
+    });
+  </script>
+</body>
+</html>

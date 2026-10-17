@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>棉花糖机 · 3D 拼装工坊（编辑器模式）- 第 9 页</title>
+  <!-- 引入本地 Three.js 3D 渲染引擎 -->
+  <script src="three.min.js"></script>
+  <style>
+    /* =========================================================
+       1. 全局极简设计规范 (参考 Blender / 3D 编辑器工业风)
+       ========================================================= */
+    :root {
+      /* 工业级专业深灰 / 暖岩灰调 (去霓虹化、去花哨、低饱和) */
+      --editor-bg: #22252B;
+      --editor-viewport-bg: #272B33;
+      --editor-panel-bg: rgba(28, 31, 38, 0.92);
+      --editor-panel-border: 1px solid rgba(255, 255, 255, 0.10);
+      --editor-panel-hover: rgba(45, 50, 60, 0.85);
+      --editor-card-active: #323846;
+
+      /* 功能色彩：低调沉稳、不刺眼 */
+      --accent-blue: #3B82F6;
+      --accent-blue-hover: #2563EB;
+      --accent-green: #10B981;
+      --accent-wood: #C4A482;
+      --accent-amber: #D97706;
+
+      /* 文字排版色彩 */
+      --text-primary: #F3F4F6;
+      --text-secondary: #9CA3AF;
+      --text-muted: #6B7280;
+      --text-dark: #1F2937;
+
+      /* 编辑器标准圆角与投影 */
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --shadow-subtle: 0 4px 16px rgba(0, 0, 0, 0.35);
+      --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.45);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      color: var(--text-primary);
+      background-color: var(--editor-bg);
+      position: relative;
+    }
+
+    /* 主工作台整体容器 (编辑器网格布局) */
+    .editor-layout {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--editor-bg);
+    }
+
+    /* =========================================================
+       2. 顶部轻量级工具栏 (Top Menu Bar)
+       ========================================================= */
+    .editor-top-bar {
+      height: 48px;
+      background: #1A1D23;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 16px;
+      flex-shrink: 0;
+      z-index: 20;
+    }
+
+    .top-left-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .nav-back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    .nav-back-link:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: var(--text-primary);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .editor-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .editor-title-main {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: 0.3px;
+    }
+    .editor-title-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      color: #60A5FA;
+    }
+
+    .top-center-hint {
+      font-size: 13px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .top-right-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .editor-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .editor-btn:hover {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+    .editor-btn.btn-accent {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+      color: #FFF;
+    }
+    .editor-btn.btn-accent:hover {
+      background: var(--accent-blue-hover);
+    }
+
+    /* =========================================================
+       3. 核心双栏工作区 (中间 3D 视口 >75% + 右侧零件库 <25%)
+       ========================================================= */
+    .editor-main-body {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+      position: relative;
+      background-color: var(--editor-viewport-bg);
+    }
+
+    /* 中间 3D 视口 */
+    .viewport-3d-container {
+      flex: 1;
+      position: relative;
+      height: 100%;
+      min-width: 0;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 45%, #2B3039 0%, #1E2229 100%);
+    }
+
+    #threeCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: default;
+    }
+    #threeCanvas.cursor-rotating {
+      cursor: move;
+    }
+
+    /* 视口右上角：3D 坐标罗盘轴 (XYZ Gizmo) */
+    .viewport-gizmo-box {
+      position: absolute;
+      top: 14px;
+      right: 18px;
+      width: 72px;
+      height: 72px;
+      pointer-events: none;
+      z-index: 5;
+    }
+    #gizmoCanvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* 视口左下角状态提示 */
+    .viewport-status-info {
+      position: absolute;
+      left: 18px;
+      bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      pointer-events: none;
+      z-index: 5;
+      background: rgba(24, 27, 33, 0.65);
+      backdrop-filter: blur(8px);
+      padding: 4px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* 视口底部正中：快捷视角切换模式胶囊 */
+    .viewport-mode-dock {
+      position: absolute;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(26, 29, 36, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(12px);
+      padding: 4px 6px;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-subtle);
+      z-index: 5;
+    }
+    .view-chip-btn {
+      padding: 4px 12px;
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .view-chip-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+    }
+    .view-chip-btn.active {
+      background: rgba(59, 130, 246, 0.25);
+      color: #60A5FA;
+    }
+
+    /* =========================================================
+       4. 左下角极简悬浮信息卡片 (仅在点击零件时弹出)
+       ========================================================= */
+    .part-floating-info-card {
+      position: absolute;
+      left: 20px;
+      bottom: 48px;
+      width: 320px;
+      background: rgba(24, 28, 36, 0.94);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(16px);
+      border-radius: var(--radius-lg);
+      padding: 16px 18px;
+      box-shadow: var(--shadow-float);
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      opacity: 0;
+      transform: translateY(16px) scale(0.96);
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .part-floating-info-card.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .info-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 8px;
+    }
+    .info-part-title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .info-part-icon {
+      font-size: 18px;
+    }
+    .info-part-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .info-close-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: color 0.15s ease;
+    }
+    .info-close-btn:hover {
+      color: var(--text-primary);
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .info-card-body {
+      font-size: 13.5px;
+      line-height: 1.55;
+      color: var(--text-secondary);
+    }
+
+    .info-specs-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-muted);
+      background: rgba(0, 0, 0, 0.25);
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+    }
+    .info-specs-row span:last-child {
+      color: #93C5FD;
+      font-weight: 600;
+    }
+
+    .info-card-action-btn {
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--accent-blue);
+      border: none;
+      border-radius: var(--radius-sm);
+      color: #FFF;
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: background 0.15s ease;
+    }
+    .info-card-action-btn:hover {
+      background: var(--accent-blue-hover);
+    }
+    .info-card-action-btn:disabled {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+      cursor: not-allowed;
+    }
+
+    /* =========================================================
+       5. 右侧零件库侧边栏 (Right Outliner Sidebar)
+       ========================================================= */
+    .editor-sidebar-right {
+      width: 290px;
+      background: #1B1E24;
+      border-left: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .sidebar-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .sidebar-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .sidebar-counter {
+      font-size: 12px;
+      font-weight: 700;
+      color: #93C5FD;
+      background: rgba(59, 130, 246, 0.15);
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+
+    .sidebar-parts-list {
+      flex: 1;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      overflow-y: auto;
+    }
+
+    /* 零件卡片项 (极简干净、无刺眼高饱和霓虹) */
+    .sidebar-part-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .sidebar-part-item:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.16);
+      transform: translateX(-2px);
+    }
+
+    .sidebar-part-item.active {
+      background: rgba(59, 130, 246, 0.15);
+      border-color: rgba(59, 130, 246, 0.5);
+    }
+
+    .sidebar-part-item.assembled {
+      background: rgba(16, 185, 129, 0.06);
+      border-color: rgba(16, 185, 129, 0.25);
+      opacity: 0.85;
+    }
+
+    .part-item-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .part-item-icon {
+      font-size: 16px;
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .part-item-texts {
+      display: flex;
+      flex-direction: column;
+    }
+    .part-item-name {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .part-item-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .part-item-status {
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+    .sidebar-part-item.active .part-item-status {
+      color: #60A5FA;
+    }
+    .sidebar-part-item.assembled .part-item-status {
+      color: #34D399;
+    }
+
+    .sidebar-footer-tip {
+      padding: 12px 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--text-muted);
+      background: rgba(0, 0, 0, 0.15);
+    }
+
+    /* =========================================================
+       6. 底部标准统一导航栏 (保持前后页一致，包含 8 / 12)
+       ========================================================= */
+    .editor-bottom-bar {
+      height: 48px;
+      background: #1A1D23;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 16px;
+      flex-shrink: 0;
+      z-index: 20;
+    }
+
+    .nav-btn-standard {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .nav-btn-standard:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .nav-btn-standard.btn-primary {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+      color: #FFF;
+    }
+    .nav-btn-standard.btn-primary:hover {
+      background: var(--accent-blue-hover);
+    }
+
+    .nav-center-flow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+      color: var(--text-muted);
+    }
+
+    .nav-page-badge {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      background: rgba(255, 255, 255, 0.06);
+      padding: 4px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* 轻量通知 Toast */
+    .editor-toast {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: rgba(26, 30, 38, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 8px 20px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      box-shadow: var(--shadow-float);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.2s ease;
+      z-index: 100;
+    }
+    .editor-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="editor-layout">
+
+    <!-- 1. 顶部专业工具栏 -->
+    <header class="editor-top-bar">
+      <div class="top-left-group">
+        <a href="page8.html" class="nav-back-link" title="返回第 8 页：第二部分总标题">
+          <span>←</span>
+          <span>上一页</span>
+        </a>
+        <div class="editor-title-wrap">
+          <span class="editor-title-main">棉花糖机 · 3D 拼装工坊</span>
+          <span class="editor-title-badge">编辑器视图</span>
+        </div>
+      </div>
+
+      <div class="top-center-hint">
+        <span>💡 交互指南：点击右侧零件列表生成部件，点击吸附完成装配</span>
+      </div>
+
+      <div class="top-right-actions">
+        <button class="editor-btn" id="btnAutoDemo" title="自动演示完整拼装流程">
+          <span>⚡</span>
+          <span>自动拼装演示</span>
+        </button>
+        <button class="editor-btn" id="btnResetAssembly" title="重置装配台">
+          <span>🔄</span>
+          <span>重新拼装</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- 2. 双栏主体：左主视口 (>75%) + 右侧零件库 (<25%) -->
+    <main class="editor-main-body">
+
+      <!-- 3D 视图主视口 (纯净三维空间 + 清晰网格) -->
+      <section class="viewport-3d-container" id="viewportContainer">
+        <canvas id="threeCanvas"></canvas>
+
+        <!-- 右上角 3D 坐标轴小罗盘 -->
+        <div class="viewport-gizmo-box">
+          <canvas id="gizmoCanvas" width="72" height="72"></canvas>
+        </div>
+
+        <!-- 视口状态信息 (左下角小字) -->
+        <div class="viewport-status-info">
+          <span id="objCountText">6 个装配部件</span>
+          <span>|</span>
+          <span id="fpsText">60 FPS</span>
+          <span>|</span>
+          <span>视角控制：按住左键旋转 · 滚轮缩放 · 右键平移</span>
+        </div>
+
+        <!-- 底部中间：预设相机观察视角快捷胶囊 -->
+        <div class="viewport-mode-dock">
+          <button class="view-chip-btn active" id="btnViewDefault">透视</button>
+          <button class="view-chip-btn" id="btnViewTop">顶视</button>
+          <button class="view-chip-btn" id="btnViewFront">正视</button>
+          <button class="view-chip-btn" id="btnViewIso">等轴</button>
+        </div>
+
+        <!-- 左下角极简悬浮信息卡片 (仅选中零件时弹出) -->
+        <div class="part-floating-info-card" id="partFloatingCard">
+          <div class="info-card-header">
+            <div class="info-part-title-row">
+              <span class="info-part-icon" id="infoPartIcon">🪵</span>
+              <span class="info-part-name" id="infoPartName">木质工作底座</span>
+            </div>
+            <button class="info-close-btn" id="infoCardCloseBtn" title="关闭卡片">✕</button>
+          </div>
+          <p class="info-card-body" id="infoPartDesc">
+            放置在工作台上的稳固木质基座，设有预制安装卡槽与电源导向槽。
+          </p>
+          <div class="info-specs-row">
+            <span>装配状态</span>
+            <span id="infoPartStatusText">待拼装</span>
+          </div>
+          <button class="info-card-action-btn" id="infoCardActionBtn">
+            <span>🧩</span>
+            <span id="infoActionText">吸附安装到机身</span>
+          </button>
+        </div>
+
+        <!-- 浮动轻通知 -->
+        <div class="editor-toast" id="editorToast">提示信息</div>
+      </section>
+
+      <!-- 右侧零件库侧边栏 -->
+      <aside class="editor-sidebar-right">
+        <div class="sidebar-header">
+          <span class="sidebar-title">
+            <span>📦</span>
+            <span>零件库 Outliner</span>
+          </span>
+          <span class="sidebar-counter" id="sidebarCounter">0 / 6 已装配</span>
+        </div>
+
+        <!-- 零件列表 (底座、马达、易拉罐、酒精灯、电池、转盘等) -->
+        <div class="sidebar-parts-list" id="sidebarPartsList">
+          <!-- JS 动态渲染各零件条目 -->
+        </div>
+
+        <div class="sidebar-footer-tip">
+          💡 <strong>课堂教学建议：</strong>引导学生按“底座 → 电池 → 马达 → 酒精灯 → 转盘 → 易拉罐”的结构顺次认知各个机构的作用。
+        </div>
+      </aside>
+
+    </main>
+
+    <!-- 3. 底部统一标准导航栏 -->
+    <footer class="editor-bottom-bar">
+      <a href="page8.html" class="nav-btn-standard" title="返回第 8 页：第二部分总标题">
+        <span>←</span>
+        <span>上一页 (章节总标题)</span>
+      </a>
+
+      <div class="nav-center-flow">
+        <span>装配流程：</span>
+        <span id="navFlowProgress">底座就绪 → 逐步装配各组件</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <a href="page10.html" class="nav-btn-standard btn-primary" id="btnNextPageLink">
+          <span>进入下一页：装置的详细操作</span>
+          <span>→</span>
+        </a>
+        <div class="nav-page-badge">9 / 12</div>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    // =========================================================
+    // 1. 零件数据模型 (自制棉花糖机核心结构清单)
+    // =========================================================
+    const partsData = [
+      {
+        id: 'base',
+        name: '工作底座',
+        subName: 'Wooden Base Stand',
+        icon: '🪵',
+        desc: '稳固的木质装配基板，带有预制安装限位槽与吸震软垫，为高速运转的机器提供重心支撑。',
+        specs: '椴木实木板 / 4点防滑软垫',
+        targetPos: { x: 0, y: 0.2, z: 0 },
+        spawnPos: { x: 0, y: 3.5, z: 0 },
+        ghostSize: { x: 6.6, y: 0.35, z: 4.8 },
+        ghostOffsetY: 0,
+        isAssembled: false
+      },
+      {
+        id: 'battery',
+        name: '电池盒与开关',
+        subName: '2-AA Battery Pack (5×3×1cm)',
+        icon: '🔋',
+        desc: '实测 5cm×3cm×1cm 双节电池盒：高精还原实物特征——侧壁双指取放U型缺口、后端双螺旋压缩弹簧、前端六角小铜花扣铆钉、侧边金属片刀闸开关与红黑双绞引出导线。',
+        specs: '实测 5.0 × 3.0 × 1.0 cm / 侧边刀闸开关 / 弹簧触点',
+        targetPos: { x: -1.9, y: 0.38, z: 0.8 },
+        spawnPos: { x: -1.9, y: 3.6, z: 0.8 },
+        ghostSize: { x: 1.5, y: 0.5, z: 2.5 },
+        ghostOffsetY: 0.25,
+        isAssembled: false
+      },
+      {
+        id: 'motor',
+        name: '驱动马达',
+        subName: 'DC Toy Motor',
+        icon: '⚡',
+        desc: '动力核心，130/380 型微型直流电机，将电池电能转化为高速旋转机械能（高达 3000 RPM）。',
+        specs: '3V~6V 直流永磁马达 / 2mm主轴',
+        targetPos: { x: 0, y: 1.2, z: -0.2 },
+        spawnPos: { x: 0, y: 4.2, z: -0.2 },
+        ghostSize: { x: 1.3, y: 1.8, z: 1.3 },
+        ghostOffsetY: 0,
+        isAssembled: false
+      },
+      {
+        id: 'lamp',
+        name: '酒精加热灯',
+        subName: 'Alcohol Burner',
+        icon: '🔥',
+        desc: '提供恒定热源，布置在出糖罐下方，将蔗糖颗粒迅速加热熔化为液态糖浆。',
+        specs: '耐热玻璃壶体 / 纯棉灯芯',
+        targetPos: { x: 1.8, y: 0.8, z: 0.8 },
+        spawnPos: { x: 1.8, y: 3.6, z: 0.8 },
+        ghostSize: { x: 1.6, y: 1.8, z: 1.6 },
+        ghostOffsetY: 0,
+        isAssembled: false
+      },
+      {
+        id: 'coupler',
+        name: '转盘联轴器',
+        subName: 'Drive Coupler & Hub',
+        icon: '⚙️',
+        desc: '金属紧锁接头，将马达轴的扭矩平稳、无滑移地传递至上方的易拉罐出糖罐。',
+        specs: '纯铜精密联轴器 / 内六角紧固螺丝',
+        targetPos: { x: 0, y: 2.1, z: -0.2 },
+        spawnPos: { x: 0, y: 4.6, z: -0.2 },
+        ghostSize: { x: 0.9, y: 0.7, z: 0.9 },
+        ghostOffsetY: 0,
+        isAssembled: false
+      },
+      {
+        id: 'can',
+        name: '易拉罐出糖盘',
+        subName: 'Can Extrusion Spinner',
+        icon: '🥤',
+        desc: '核心离心甩丝机构！由铝制易拉罐改造而成，圆周侧壁钻有微孔。糖浆在高速自转下从微孔被甩飞成丝。',
+        specs: '轻质拉丝铝罐 / 36组微孔狭缝',
+        targetPos: { x: 0, y: 2.9, z: -0.2 },
+        spawnPos: { x: 0, y: 5.2, z: -0.2 },
+        ghostSize: { x: 2.4, y: 1.2, z: 2.4 },
+        ghostOffsetY: 0,
+        isAssembled: false
+      }
+    ];
+
+    let selectedPartIdx = -1;
+    let isFullyAssembled = false;
+
+    // =========================================================
+    // 2. 专业极简 OrbitControls (支持旋转、滚轮缩放、右键平移)
+    // =========================================================
+    class CleanOrbitControls {
+      constructor(camera, domElement) {
+        this.camera = camera;
+        this.domElement = domElement;
+        this.target = new THREE.Vector3(0, 1.8, 0);
+
+        this.radius = 14.0;
+        this.theta = Math.PI * 0.22; // 水平角度
+        this.phi = Math.PI * 0.32;   // 俯仰角度
+
+        this.minRadius = 4.0;
+        this.maxRadius = 28.0;
+        this.minPhi = 0.08;
+        this.maxPhi = Math.PI * 0.48;
+
+        this.isOrbiting = false;
+        this.isPanning = false;
+        this.prevMouse = { x: 0, y: 0 };
+        this.damping = 0.14;
+
+        this.targetTheta = this.theta;
+        this.targetPhi = this.phi;
+        this.targetRadius = this.radius;
+        this.panOffset = new THREE.Vector3();
+
+        this.autoRotate = false;
+        this.autoRotateSpeed = 0.006;
+
+        this.initEvents();
+        this.updateCamera();
+      }
+
+      initEvents() {
+        this.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        this.domElement.addEventListener('pointerdown', (e) => {
+          if (e.button === 0) {
+            this.isOrbiting = true;
+            this.domElement.classList.add('cursor-rotating');
+          } else if (e.button === 2) {
+            this.isPanning = true;
+          }
+          this.prevMouse.x = e.clientX;
+          this.prevMouse.y = e.clientY;
+        });
+
+        window.addEventListener('pointermove', (e) => {
+          if (!this.isOrbiting && !this.isPanning) return;
+          const dx = e.clientX - this.prevMouse.x;
+          const dy = e.clientY - this.prevMouse.y;
+          this.prevMouse.x = e.clientX;
+          this.prevMouse.y = e.clientY;
+
+          if (this.isOrbiting) {
+            this.targetTheta -= dx * 0.0055;
+            this.targetPhi -= dy * 0.0055;
+            this.targetPhi = Math.max(this.minPhi, Math.min(this.maxPhi, this.targetPhi));
+          } else if (this.isPanning) {
+            // 平移相机靶点
+            const factor = this.radius * 0.0015;
+            const right = new THREE.Vector3();
+            right.crossVectors(this.camera.up, this.camera.position.clone().sub(this.target)).normalize();
+            this.target.addScaledVector(right, -dx * factor);
+            this.target.y += dy * factor;
+          }
+        });
+
+        window.addEventListener('pointerup', () => {
+          this.isOrbiting = false;
+          this.isPanning = false;
+          this.domElement.classList.remove('cursor-rotating');
+        });
+
+        this.domElement.addEventListener('wheel', (e) => {
+          e.preventDefault();
+          this.targetRadius += e.deltaY * 0.012;
+          this.targetRadius = Math.max(this.minRadius, Math.min(this.maxRadius, this.targetRadius));
+        }, { passive: false });
+      }
+
+      update() {
+        if (this.autoRotate) {
+          this.targetTheta += this.autoRotateSpeed;
+        }
+
+        this.theta += (this.targetTheta - this.theta) * this.damping;
+        this.phi += (this.targetPhi - this.phi) * this.damping;
+        this.radius += (this.targetRadius - this.radius) * this.damping;
+
+        this.updateCamera();
+      }
+
+      updateCamera() {
+        const sinPhi = Math.sin(this.phi);
+        const cosPhi = Math.cos(this.phi);
+        const sinTheta = Math.sin(this.theta);
+        const cosTheta = Math.cos(this.theta);
+
+        this.camera.position.x = this.target.x + this.radius * sinPhi * sinTheta;
+        this.camera.position.y = this.target.y + this.radius * cosPhi;
+        this.camera.position.z = this.target.z + this.radius * sinPhi * cosTheta;
+        this.camera.lookAt(this.target);
+      }
+
+      setView(theta, phi, radius, targetY = 1.8) {
+        this.targetTheta = theta;
+        this.targetPhi = Math.max(this.minPhi, Math.min(this.maxPhi, phi));
+        this.targetRadius = Math.max(this.minRadius, Math.min(this.maxRadius, radius));
+        this.target.set(0, targetY, 0);
+      }
+    }
+
+    // =========================================================
+    // 3. Three.js 场景初始化与淡雅网格 (Clean Studio Environment)
+    // =========================================================
+    const container = document.getElementById('viewportContainer');
+    const canvas = document.getElementById('threeCanvas');
+    let scene, camera, renderer, controls;
+    let gridHelper;
+    let raycaster, mouse;
+
+    const partGroups = []; // 保存各部件 3D Group
+    let ghostMesh = null;  // 目标装配虚影线框
+
+    function initThree() {
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+
+      // 1. 场景
+      scene = new THREE.Scene();
+
+      // 2. 摄像机
+      camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
+
+      // 3. 渲染器 (平滑抗锯齿、工业级软阴影)
+      renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+      renderer.setSize(w, h);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+      // 4. 控制器
+      controls = new CleanOrbitControls(camera, canvas);
+
+      // 5. 优雅专业照明 (温暖的工作室柔光，无荧光刺眼色)
+      const ambientLight = new THREE.AmbientLight(0xE2E8F0, 1.2);
+      scene.add(ambientLight);
+
+      // 主聚光灯
+      const mainLight = new THREE.DirectionalLight(0xFFFFFF, 1.8);
+      mainLight.position.set(8, 16, 10);
+      mainLight.castShadow = true;
+      mainLight.shadow.mapSize.width = 1024;
+      mainLight.shadow.mapSize.height = 1024;
+      mainLight.shadow.bias = -0.001;
+      scene.add(mainLight);
+
+      // 辅补光 (淡暖色)
+      const fillLight = new THREE.DirectionalLight(0xFDE68A, 0.8);
+      fillLight.position.set(-10, 8, -8);
+      scene.add(fillLight);
+
+      // 6. 清晰淡雅网格 (GridHelper: 让人一眼看出三维空间)
+      gridHelper = new THREE.GridHelper(24, 24, 0x8892B0, 0x3E4556);
+      gridHelper.position.y = 0.0;
+      scene.add(gridHelper);
+
+      // 7. 射线拾取
+      raycaster = new THREE.Raycaster();
+      mouse = new THREE.Vector2();
+
+      // 8. 创建 6 个真实的 DIY 制作部件模型
+      createPartsModels();
+
+      // 9. 创建目标对准线框
+      createGhostWireframe();
+
+      // 10. 事件绑定
+      window.addEventListener('resize', onResize);
+      canvas.addEventListener('click', onCanvasRaycast);
+
+      // 11. 默认展示第一个底座
+      spawnPartInScene(0);
+      selectPartInUI(0);
+    }
+
+    // =========================================================
+    // 4. 零件 3D 几何建模 (真实工程材质与高精细节还原)
+    // =========================================================
+
+    // 螺旋压缩弹簧参数化空间曲线 (用于 TubeGeometry 生成锥度圆柱螺旋弹簧)
+    class HelixSpringCurve extends THREE.Curve {
+      constructor(turns = 4.5, radius = 0.13, length = 0.36) {
+        super();
+        this.turns = turns;
+        this.radius = radius;
+        this.length = length;
+      }
+      getPoint(t) {
+        const angle = t * Math.PI * 2 * this.turns;
+        const r = this.radius * (0.8 + 0.2 * (1 - t)); // 微锥度过渡，贴合实物宝塔弹簧形态
+        const x = Math.cos(angle) * r;
+        const y = Math.sin(angle) * r;
+        const z = t * this.length;
+        return new THREE.Vector3(x, y, z);
+      }
+    }
+
+    function createPartsModels() {
+      // 真实质感材质字典 (浅灰、白、木色、铜色)
+      const mats = {
+        wood: new THREE.MeshStandardMaterial({ color: 0xC4A482, roughness: 0.55, metalness: 0.05 }),
+        aluminum: new THREE.MeshStandardMaterial({ color: 0xE2E8F0, roughness: 0.2, metalness: 0.9 }),
+        chrome: new THREE.MeshStandardMaterial({ color: 0xF8FAFC, roughness: 0.1, metalness: 0.98 }),
+        brass: new THREE.MeshStandardMaterial({ color: 0xD97706, roughness: 0.25, metalness: 0.85 }),
+        blackPlastic: new THREE.MeshStandardMaterial({ color: 0x1F2937, roughness: 0.5, metalness: 0.1 }),
+        canRed: new THREE.MeshStandardMaterial({ color: 0xDC2626, roughness: 0.25, metalness: 0.6 }),
+        canWhite: new THREE.MeshStandardMaterial({ color: 0xF8FAFC, roughness: 0.2, metalness: 0.7 }),
+        glass: new THREE.MeshPhysicalMaterial({ color: 0xE0F2FE, transparent: true, opacity: 0.55, roughness: 0.1, transmission: 0.85 }),
+        flame: new THREE.MeshBasicMaterial({ color: 0xF59E0B })
+      };
+
+      // --------------------------------------------------------
+      // 1. 木质工作底座 (Base Board)
+      // --------------------------------------------------------
+      const baseGrp = new THREE.Group();
+      const baseMesh = new THREE.Mesh(new THREE.BoxGeometry(6.6, 0.35, 4.8), mats.wood);
+      baseMesh.castShadow = true;
+      baseMesh.receiveShadow = true;
+      baseGrp.add(baseMesh);
+
+      // 4 点防滑橡胶底脚
+      for (let i = 0; i < 4; i++) {
+        const x = (i % 2 === 0 ? 1 : -1) * 2.8;
+        const z = (i < 2 ? 1 : -1) * 2.0;
+        const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.15, 16), mats.blackPlastic);
+        foot.position.set(x, -0.22, z);
+        baseGrp.add(foot);
+      }
+      baseGrp.position.copy(partsData[0].spawnPos);
+      baseGrp.visible = false;
+      scene.add(baseGrp);
+      partGroups.push(baseGrp);
+
+      // --------------------------------------------------------
+      // 2. 电池盒与开关 (实物测绘 5cm×3cm×1cm 高精重构模型)
+      // --------------------------------------------------------
+      const battGrp = new THREE.Group();
+
+      // 精细化真实材质：消光工程塑料、镀镍弹簧钢、冲压黄铜、白铁皮刀闸、双色柔性绝缘导线
+      const bMats = {
+        plastic: new THREE.MeshStandardMaterial({
+          color: 0x1A1C20,
+          roughness: 0.68,
+          metalness: 0.12
+        }),
+        springSteel: new THREE.MeshStandardMaterial({
+          color: 0xDEE4EC,
+          roughness: 0.18,
+          metalness: 0.95
+        }),
+        brassEyelet: new THREE.MeshStandardMaterial({
+          color: 0xD89830,
+          roughness: 0.28,
+          metalness: 0.88
+        }),
+        sheetMetal: new THREE.MeshStandardMaterial({
+          color: 0xC4CBD4,
+          roughness: 0.24,
+          metalness: 0.92
+        }),
+        redWire: new THREE.MeshStandardMaterial({
+          color: 0xD32F2F,
+          roughness: 0.45,
+          metalness: 0.05
+        }),
+        blackWire: new THREE.MeshStandardMaterial({
+          color: 0x121316,
+          roughness: 0.45,
+          metalness: 0.05
+        }),
+        copperTip: new THREE.MeshStandardMaterial({
+          color: 0xB86530,
+          roughness: 0.35,
+          metalness: 0.85
+        })
+      };
+
+      // 严格按照实物比例：长 5cm x 宽 3cm x 高 1cm (对应 3D 尺寸 L=2.5, W=1.5, H=0.5)
+      const bL = 2.5;
+      const bW = 1.5;
+      const bH = 0.5;
+      const bWallT = 0.07;
+      const bFloorT = 0.06;
+
+      // 1. 底板 (带注塑圆孔沉降痕迹 - 对应照片5实物特征)
+      const bFloor = new THREE.Mesh(new THREE.BoxGeometry(bW, bFloorT, bL), bMats.plastic);
+      bFloor.position.set(0, bFloorT / 2, 0);
+      bFloor.castShadow = true;
+      bFloor.receiveShadow = true;
+      battGrp.add(bFloor);
+
+      for (let i = 0; i < 5; i++) {
+        const mark = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.01, 12), bMats.plastic);
+        mark.position.set(0, 0.005, (i - 2) * 0.35);
+        battGrp.add(mark);
+      }
+
+      // 2. 后端挡板 (Z = -bL/2，安装弹簧底座端)
+      const bRearWall = new THREE.Mesh(new THREE.BoxGeometry(bW, bH, bWallT), bMats.plastic);
+      bRearWall.position.set(0, bH / 2, -bL / 2 + bWallT / 2);
+      bRearWall.castShadow = true;
+      battGrp.add(bRearWall);
+
+      // 3. 前端挡板 (Z = +bL/2) 预留左侧引线与端子豁口 (对应照片3、4)
+      const bFrontWallL = new THREE.Mesh(new THREE.BoxGeometry(bW * 0.45, bH, bWallT), bMats.plastic);
+      bFrontWallL.position.set(-bW * 0.275, bH / 2, bL / 2 - bWallT / 2);
+      bFrontWallL.castShadow = true;
+      battGrp.add(bFrontWallL);
+
+      const bFrontWallR = new THREE.Mesh(new THREE.BoxGeometry(bW * 0.45, bH, bWallT), bMats.plastic);
+      bFrontWallR.position.set(bW * 0.275, bH / 2, bL / 2 - bWallT / 2);
+      bFrontWallR.castShadow = true;
+      battGrp.add(bFrontWallR);
+
+      const bFrontBridge = new THREE.Mesh(new THREE.BoxGeometry(bW * 0.15, bH * 0.35, bWallT), bMats.plastic);
+      bFrontBridge.position.set(0, bH * 0.825, bL / 2 - bWallT / 2);
+      battGrp.add(bFrontBridge);
+
+      // 4. 左右两侧长边外壁：带有手指取放电池的经典双U型凹槽 (对应照片1、2实物特征)
+      [-1, 1].forEach((side) => {
+        const xPos = side * (bW / 2 - bWallT / 2);
+        // 底部通长横条
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(bWallT, 0.16, bL), bMats.plastic);
+        rail.position.set(xPos, 0.08, 0);
+        battGrp.add(rail);
+
+        // 3个竖直立柱 (后/中/前，中间形成两个开放式取放电池缺口)
+        const postH = bH - 0.16;
+        const postY = 0.16 + postH / 2;
+
+        const postR = new THREE.Mesh(new THREE.BoxGeometry(bWallT, postH, 0.36), bMats.plastic);
+        postR.position.set(xPos, postY, -bL / 2 + 0.18 + bWallT);
+        battGrp.add(postR);
+
+        const postM = new THREE.Mesh(new THREE.BoxGeometry(bWallT, postH, 0.46), bMats.plastic);
+        postM.position.set(xPos, postY, 0);
+        battGrp.add(postM);
+
+        const postF = new THREE.Mesh(new THREE.BoxGeometry(bWallT, postH, 0.36), bMats.plastic);
+        postF.position.set(xPos, postY, bL / 2 - 0.18 - bWallT);
+        battGrp.add(postF);
+      });
+
+      // 5. 中间隔离筋 (分隔左右两节电池仓)
+      const bDivider = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.24, bL - bWallT * 2), bMats.plastic);
+      bDivider.position.set(0, 0.12 + bFloorT, 0);
+      battGrp.add(bDivider);
+
+      // 仓底圆弧限位导轨
+      [-1, 1].forEach((side) => {
+        const xCenter = side * (bW * 0.25);
+        const g1 = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.05, bL * 0.72), bMats.plastic);
+        g1.position.set(xCenter - 0.21, bFloorT + 0.025, 0);
+        const g2 = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.05, bL * 0.72), bMats.plastic);
+        g2.position.set(xCenter + 0.21, bFloorT + 0.025, 0);
+        battGrp.add(g1);
+        battGrp.add(g2);
+      });
+
+      // 6. 真实螺旋压缩弹簧 (照片1、2中微型宝塔状锥度镀镍螺旋弹簧)
+      // 左仓后部弹簧
+      const spr1Geo = new THREE.TubeGeometry(new HelixSpringCurve(4.5, 0.13, 0.36), 48, 0.016, 8, false);
+      const spr1Mesh = new THREE.Mesh(spr1Geo, bMats.springSteel);
+      spr1Mesh.position.set(-bW * 0.25, 0.25, -bL / 2 + bWallT);
+      spr1Mesh.castShadow = true;
+      battGrp.add(spr1Mesh);
+
+      const spr1Pad = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.02, 12), bMats.sheetMetal);
+      spr1Pad.rotation.x = Math.PI * 0.5;
+      spr1Pad.position.set(-bW * 0.25, 0.25, -bL / 2 + bWallT + 0.01);
+      battGrp.add(spr1Pad);
+
+      // 右仓前部弹簧 (串联回路反向布置)
+      const spr2Geo = new THREE.TubeGeometry(new HelixSpringCurve(4.5, 0.13, 0.36), 48, 0.016, 8, false);
+      const spr2Mesh = new THREE.Mesh(spr2Geo, bMats.springSteel);
+      spr2Mesh.rotation.y = Math.PI;
+      spr2Mesh.position.set(bW * 0.25, 0.25, bL / 2 - bWallT);
+      spr2Mesh.castShadow = true;
+      battGrp.add(spr2Mesh);
+
+      // 7. 正极金属触片与触点 (左仓前正极 / 右仓后正极)
+      const posPlateL = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.28, 0.02), bMats.sheetMetal);
+      posPlateL.position.set(-bW * 0.25, 0.25, bL / 2 - bWallT - 0.01);
+      const posNubL = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.04, 12), bMats.brassEyelet);
+      posNubL.rotation.x = Math.PI * 0.5;
+      posNubL.position.set(-bW * 0.25, 0.25, bL / 2 - bWallT - 0.03);
+      battGrp.add(posPlateL);
+      battGrp.add(posNubL);
+
+      const posPlateR = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.28, 0.02), bMats.sheetMetal);
+      posPlateR.position.set(bW * 0.25, 0.25, -bL / 2 + bWallT + 0.01);
+      const posNubR = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.04, 12), bMats.brassEyelet);
+      posNubR.rotation.x = Math.PI * 0.5;
+      posNubR.position.set(bW * 0.25, 0.25, -bL / 2 + bWallT + 0.03);
+      battGrp.add(posPlateR);
+      battGrp.add(posNubR);
+
+      // 8. 前端外表面六角小铜花铆扣 (对应照片3、4经典标志性特征)
+      [-1, 1].forEach((side) => {
+        const xPos = side * (bW * 0.25);
+        const zPos = bL / 2 + 0.005;
+
+        // 圆形沉孔
+        const well = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.02, 16), bMats.plastic);
+        well.rotation.x = Math.PI * 0.5;
+        well.position.set(xPos, 0.25, zPos - 0.01);
+        battGrp.add(well);
+
+        // 铜铆钉圆环
+        const eyeletRing = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.025, 16), bMats.brassEyelet);
+        eyeletRing.rotation.x = Math.PI * 0.5;
+        eyeletRing.position.set(xPos, 0.25, zPos);
+        battGrp.add(eyeletRing);
+
+        // 中心通孔
+        const hole = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.03, 12), bMats.plastic);
+        hole.rotation.x = Math.PI * 0.5;
+        hole.position.set(xPos, 0.25, zPos + 0.005);
+        battGrp.add(hole);
+
+        // 六爪外展花瓣
+        for (let p = 0; p < 6; p++) {
+          const ang = (p * Math.PI) / 3;
+          const prong = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.05, 0.015), bMats.brassEyelet);
+          prong.position.set(xPos + Math.cos(ang) * 0.09, 0.25 + Math.sin(ang) * 0.09, zPos + 0.006);
+          prong.rotation.z = ang;
+          battGrp.add(prong);
+        }
+      });
+
+      // 9. 侧边白铁皮刀闸开关拨片 (对应照片3、4、5突出特征)
+      const swGroup = new THREE.Group();
+      const levLen = 0.85;
+      const levW = 0.16;
+      const levThick = 0.02;
+
+      const levMesh = new THREE.Mesh(new THREE.BoxGeometry(levLen, levThick, levW), bMats.sheetMetal);
+      levMesh.position.set(levLen / 2, 0, 0);
+      swGroup.add(levMesh);
+
+      const levTip = new THREE.Mesh(new THREE.CylinderGeometry(levW / 2, levW / 2, levThick, 12), bMats.sheetMetal);
+      levTip.position.set(levLen, 0, 0);
+      swGroup.add(levTip);
+
+      const pRivet = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.04, 12), bMats.brassEyelet);
+      pRivet.position.set(0.06, 0.015, 0);
+      swGroup.add(pRivet);
+
+      swGroup.position.set(bW / 2 + 0.01, 0.25, bL / 2 - 0.25);
+      swGroup.rotation.y = 0.15; // 真实外翘微角度
+      swGroup.castShadow = true;
+      battGrp.add(swGroup);
+
+      // 10. 红黑双绞柔性导线 (对应照片1、3、4、5，自然弯曲弧度 + 剥线纯铜裸端子)
+      const redCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-0.12, 0.22, bL / 2 - 0.05),
+        new THREE.Vector3(-0.25, 0.20, bL / 2 + 0.25),
+        new THREE.Vector3(-0.55, 0.14, bL / 2 + 0.60),
+        new THREE.Vector3(-0.85, 0.08, bL / 2 + 0.95),
+        new THREE.Vector3(-1.15, 0.05, bL / 2 + 1.25),
+        new THREE.Vector3(-1.40, 0.04, bL / 2 + 1.50)
+      ]);
+      const redWireMesh = new THREE.Mesh(new THREE.TubeGeometry(redCurve, 36, 0.028, 8, false), bMats.redWire);
+      redWireMesh.castShadow = true;
+      battGrp.add(redWireMesh);
+
+      const redTipCopper = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.12, 8), bMats.copperTip);
+      redTipCopper.rotation.x = Math.PI * 0.45;
+      redTipCopper.position.set(-1.45, 0.035, bL / 2 + 1.56);
+      battGrp.add(redTipCopper);
+
+      const blkCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-0.02, 0.16, bL / 2 - 0.05),
+        new THREE.Vector3(-0.18, 0.15, bL / 2 + 0.28),
+        new THREE.Vector3(-0.48, 0.10, bL / 2 + 0.65),
+        new THREE.Vector3(-0.76, 0.06, bL / 2 + 0.98),
+        new THREE.Vector3(-1.05, 0.04, bL / 2 + 1.28),
+        new THREE.Vector3(-1.30, 0.03, bL / 2 + 1.52)
+      ]);
+      const blkWireMesh = new THREE.Mesh(new THREE.TubeGeometry(blkCurve, 36, 0.028, 8, false), bMats.blackWire);
+      blkWireMesh.castShadow = true;
+      battGrp.add(blkWireMesh);
+
+      const blkTipCopper = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.12, 8), bMats.copperTip);
+      blkTipCopper.rotation.x = Math.PI * 0.45;
+      blkTipCopper.position.set(-1.35, 0.025, bL / 2 + 1.58);
+      battGrp.add(blkTipCopper);
+
+      // 盒内跨接红线 (照片3)
+      const inCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-bW * 0.22, 0.15, bL / 2 - 0.12),
+        new THREE.Vector3(-0.05, 0.12, bL / 2 - 0.20),
+        new THREE.Vector3(bW * 0.22, 0.14, bL / 2 - 0.28),
+        new THREE.Vector3(bW / 2 - 0.06, 0.20, bL / 2 - 0.26)
+      ]);
+      const innerWireMesh = new THREE.Mesh(new THREE.TubeGeometry(inCurve, 20, 0.016, 6, false), bMats.redWire);
+      battGrp.add(innerWireMesh);
+
+      battGrp.position.copy(partsData[1].spawnPos);
+      battGrp.visible = false;
+      scene.add(battGrp);
+      partGroups.push(battGrp);
+
+      // --------------------------------------------------------
+      // 3. 驱动马达 (DC Toy Motor)
+      // --------------------------------------------------------
+      const motorGrp = new THREE.Group();
+      // 金属固定支架
+      const bracket = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.4, 1.2), mats.aluminum);
+      bracket.position.y = -0.5;
+      motorGrp.add(bracket);
+
+      // 电机本体 (银白圆柱)
+      const motorCan = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.65, 1.2, 24), mats.aluminum);
+      motorCan.castShadow = true;
+      motorGrp.add(motorCan);
+
+      // 顶端轴承与黄铜输出轴
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 1.0, 16), mats.brass);
+      shaft.position.y = 0.9;
+      motorGrp.add(shaft);
+
+      motorGrp.position.copy(partsData[2].spawnPos);
+      motorGrp.visible = false;
+      scene.add(motorGrp);
+      partGroups.push(motorGrp);
+
+      // --------------------------------------------------------
+      // 4. 酒精加热灯 (Alcohol Lamp)
+      // --------------------------------------------------------
+      const lampGrp = new THREE.Group();
+      // 玻璃壶体
+      const jar = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.85, 0.9, 20), mats.glass);
+      jar.castShadow = true;
+      lampGrp.add(jar);
+
+      // 黄铜灯盖
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 0.25, 16), mats.brass);
+      cap.position.y = 0.55;
+      lampGrp.add(cap);
+
+      // 灯芯
+      const wick = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.3, 12), mats.canWhite);
+      wick.position.y = 0.75;
+      lampGrp.add(wick);
+
+      // 柔和火苗
+      const flame = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.45, 12), mats.flame);
+      flame.position.y = 1.05;
+      lampGrp.add(flame);
+
+      lampGrp.position.copy(partsData[3].spawnPos);
+      lampGrp.visible = false;
+      scene.add(lampGrp);
+      partGroups.push(lampGrp);
+
+      // --------------------------------------------------------
+      // 5. 转盘联轴器 (Coupler & Hub)
+      // --------------------------------------------------------
+      const couplerGrp = new THREE.Group();
+      const couplerBody = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.38, 0.55, 16), mats.brass);
+      couplerBody.castShadow = true;
+      couplerGrp.add(couplerBody);
+
+      // 顶面紧固转盘小托板
+      const tray = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 0.08, 20), mats.aluminum);
+      tray.position.y = 0.3;
+      couplerGrp.add(tray);
+
+      couplerGrp.position.copy(partsData[4].spawnPos);
+      couplerGrp.visible = false;
+      scene.add(couplerGrp);
+      partGroups.push(couplerGrp);
+
+      // --------------------------------------------------------
+      // 6. 易拉罐出糖盘 (Can Extrusion Spinner)
+      // --------------------------------------------------------
+      const canGrp = new THREE.Group();
+      // 铝制易拉罐罐体
+      const canBody = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.95, 24), mats.aluminum);
+      canBody.castShadow = true;
+      canGrp.add(canBody);
+
+      // 罐体红色装饰条 (模拟真实可乐易拉罐)
+      const canLabel = new THREE.Mesh(new THREE.CylinderGeometry(1.21, 1.21, 0.5, 24), mats.canRed);
+      canGrp.add(canLabel);
+
+      // 周圈微孔出糖环 (暗色圆圈)
+      const slitRing = new THREE.Mesh(new THREE.TorusGeometry(1.215, 0.04, 8, 32), mats.blackPlastic);
+      slitRing.rotation.x = Math.PI * 0.5;
+      slitRing.position.y = 0.32;
+      canGrp.add(slitRing);
+
+      // 顶部加糖凹口
+      const canTop = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.15, 0.15, 24), mats.aluminum);
+      canTop.position.y = 0.52;
+      canGrp.add(canTop);
+
+      canGrp.position.copy(partsData[5].spawnPos);
+      canGrp.visible = false;
+      scene.add(canGrp);
+      partGroups.push(canGrp);
+    }
+
+    // 目标安装位淡雅线框 (Ghost Wireframe)
+    function createGhostWireframe() {
+      const geo = new THREE.BoxGeometry(1, 1, 1);
+      const wireMat = new THREE.MeshBasicMaterial({
+        color: 0x60A5FA,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.35
+      });
+      ghostMesh = new THREE.Mesh(geo, wireMat);
+      ghostMesh.visible = false;
+      scene.add(ghostMesh);
+    }
+
+    // =========================================================
+    // 5. 交互装配逻辑 (平滑吸附、右侧列表联动、悬浮卡片)
+    // =========================================================
+    const floatingCard = document.getElementById('partFloatingCard');
+    const infoPartIcon = document.getElementById('infoPartIcon');
+    const infoPartName = document.getElementById('infoPartName');
+    const infoPartDesc = document.getElementById('infoPartDesc');
+    const infoPartStatusText = document.getElementById('infoPartStatusText');
+    const infoCardActionBtn = document.getElementById('infoCardActionBtn');
+    const infoActionText = document.getElementById('infoActionText');
+    const sidebarCounter = document.getElementById('sidebarCounter');
+    const navFlowProgress = document.getElementById('navFlowProgress');
+
+    // 渲染右侧零件列表
+    function renderSidebarList() {
+      const listEl = document.getElementById('sidebarPartsList');
+      listEl.innerHTML = '';
+
+      partsData.forEach((part, idx) => {
+        const item = document.createElement('div');
+        let stateClass = '';
+        if (part.isAssembled) stateClass = 'assembled';
+        else if (idx === selectedPartIdx) stateClass = 'active';
+
+        item.className = `sidebar-part-item ${stateClass}`;
+        item.dataset.index = idx;
+
+        item.innerHTML = `
+          <div class="part-item-left">
+            <span class="part-item-icon">${part.icon}</span>
+            <div class="part-item-texts">
+              <span class="part-item-name">${part.name}</span>
+              <span class="part-item-sub">${part.subName}</span>
+            </div>
+          </div>
+          <span class="part-item-status">${part.isAssembled ? '✓ 已装配' : (idx === selectedPartIdx ? '待装配' : '')}</span>
+        `;
+
+        item.addEventListener('click', () => {
+          onSelectPartFromList(idx);
+        });
+
+        listEl.appendChild(item);
+      });
+
+      const assembledCount = partsData.filter(p => p.isAssembled).length;
+      sidebarCounter.textContent = `${assembledCount} / ${partsData.length} 已装配`;
+
+      if (assembledCount === partsData.length) {
+        navFlowProgress.textContent = '🎉 全套部件已拼装完成，运转正常！';
+        navFlowProgress.style.color = '#34D399';
+      } else {
+        const nextPart = partsData.find(p => !p.isAssembled);
+        navFlowProgress.textContent = `装配中：请安装【${nextPart ? nextPart.name : ''}】`;
+        navFlowProgress.style.color = '#94A3B8';
+      }
+    }
+
+    // 在右侧列表中选中零件
+    function onSelectPartFromList(idx) {
+      selectedPartIdx = idx;
+      spawnPartInScene(idx);
+      selectPartInUI(idx);
+    }
+
+    // 在场景中生成/展示模型并调出左下角卡片
+    function spawnPartInScene(idx) {
+      const part = partsData[idx];
+      const grp = partGroups[idx];
+      grp.visible = true;
+
+      // 如果未安装，在悬停高度轻柔呼吸
+      if (!part.isAssembled) {
+        grp.position.copy(part.spawnPos);
+
+        // 调整目标线框大小与位置
+        ghostMesh.visible = true;
+        ghostMesh.position.set(part.targetPos.x, part.targetPos.y + (part.ghostOffsetY || 0), part.targetPos.z);
+        if (part.ghostSize) {
+          ghostMesh.scale.set(part.ghostSize.x, part.ghostSize.y, part.ghostSize.z);
+        } else {
+          ghostMesh.scale.set(1.5, 1.5, 1.5);
+        }
+      } else {
+        ghostMesh.visible = false;
+      }
+    }
+
+    // 更新左下角悬浮卡片
+    function selectPartInUI(idx) {
+      const part = partsData[idx];
+
+      infoPartIcon.textContent = part.icon;
+      infoPartName.textContent = part.name;
+      infoPartDesc.textContent = part.desc;
+
+      if (part.isAssembled) {
+        infoPartStatusText.textContent = '已成功装配在机身';
+        infoPartStatusText.style.color = '#34D399';
+        infoCardActionBtn.disabled = true;
+        infoActionText.textContent = '✓ 该部件已装配到位';
+      } else {
+        infoPartStatusText.textContent = `待装配 (${part.specs})`;
+        infoPartStatusText.style.color = '#60A5FA';
+        infoCardActionBtn.disabled = false;
+        infoActionText.textContent = '吸附安装到机身';
+        infoCardActionBtn.onclick = () => {
+          snapPartToPosition(idx);
+        };
+      }
+
+      floatingCard.classList.add('visible');
+      renderSidebarList();
+    }
+
+    // 执行吸附装配动画
+    let animatingParts = [];
+
+    function snapPartToPosition(idx) {
+      const part = partsData[idx];
+      const grp = partGroups[idx];
+
+      if (part.isAssembled) return;
+
+      // 启动下落吸附平滑插值动画
+      animatingParts.push({
+        group: grp,
+        startPos: grp.position.clone(),
+        targetPos: new THREE.Vector3(part.targetPos.x, part.targetPos.y, part.targetPos.z),
+        startTime: performance.now(),
+        duration: 400,
+        partIndex: idx
+      });
+
+      infoCardActionBtn.disabled = true;
+      infoActionText.textContent = '装配吸附中...';
+    }
+
+    function onPartSnapped(idx) {
+      const part = partsData[idx];
+      part.isAssembled = true;
+      ghostMesh.visible = false;
+
+      // 音效
+      playSnapSound();
+
+      showToast(`✓ 已成功安装【${part.name}】！`);
+      selectPartInUI(idx);
+
+      // 检查是否全部拼装完毕
+      const allDone = partsData.every(p => p.isAssembled);
+      if (allDone) {
+        isFullyAssembled = true;
+        controls.autoRotate = true; // 缓慢自转展示成果
+        showToast('🎉 恭喜！自制棉花糖机全部拼装完成，马达已通电运转！');
+      } else {
+        // 自动引导选中下一个未装配的零件
+        const nextIdx = partsData.findIndex(p => !p.isAssembled);
+        if (nextIdx !== -1) {
+          setTimeout(() => {
+            onSelectPartFromList(nextIdx);
+          }, 350);
+        }
+      }
+    }
+
+    // 重新拼装重置
+    function resetAllAssembly() {
+      isFullyAssembled = false;
+      controls.autoRotate = false;
+      ghostMesh.visible = false;
+
+      partsData.forEach((part, idx) => {
+        part.isAssembled = false;
+        const grp = partGroups[idx];
+        grp.position.copy(part.spawnPos);
+        grp.visible = (idx === 0); // 仅显示底座
+        grp.rotation.set(0, 0, 0);
+      });
+
+      onSelectPartFromList(0);
+      showToast('🔄 装配台已重置，请重新挑选零件进行拼装。');
+    }
+    document.getElementById('btnResetAssembly').addEventListener('click', resetAllAssembly);
+
+    // 自动拼装演示
+    function autoAssembleDemo() {
+      resetAllAssembly();
+      showToast('⚡ 正在执行全套自动化装配流程演示...');
+
+      let step = 0;
+      const timer = setInterval(() => {
+        if (step < partsData.length) {
+          onSelectPartFromList(step);
+          snapPartToPosition(step);
+          step++;
+        } else {
+          clearInterval(timer);
+        }
+      }, 550);
+    }
+    document.getElementById('btnAutoDemo').addEventListener('click', autoAssembleDemo);
+
+    // 悬浮卡片关闭按钮
+    document.getElementById('infoCardCloseBtn').addEventListener('click', () => {
+      floatingCard.classList.remove('visible');
+    });
+
+    // 3D 画布射线拾取 (点击悬浮模型触发吸附)
+    function onCanvasRaycast(e) {
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+
+      // 检查当前高亮零件或任一零件
+      if (selectedPartIdx >= 0 && selectedPartIdx < partsData.length) {
+        const curGrp = partGroups[selectedPartIdx];
+        if (curGrp && curGrp.visible) {
+          const hits = raycaster.intersectObjects(curGrp.children, true);
+          if (hits.length > 0) {
+            snapPartToPosition(selectedPartIdx);
+            return;
+          }
+        }
+      }
+
+      // 检查点击其他已生成零件
+      for (let i = 0; i < partGroups.length; i++) {
+        if (partGroups[i].visible) {
+          const hits = raycaster.intersectObjects(partGroups[i].children, true);
+          if (hits.length > 0) {
+            onSelectPartFromList(i);
+            break;
+          }
+        }
+      }
+    }
+
+    // 预设视角切换
+    const btnVDef = document.getElementById('btnViewDefault');
+    const btnVTop = document.getElementById('btnViewTop');
+    const btnVFront = document.getElementById('btnViewFront');
+    const btnVIso = document.getElementById('btnViewIso');
+    const viewBtns = [btnVDef, btnVTop, btnVFront, btnVIso];
+
+    function setActiveViewBtn(btn) {
+      viewBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    btnVDef.addEventListener('click', () => {
+      controls.setView(Math.PI * 0.22, Math.PI * 0.32, 14.0);
+      setActiveViewBtn(btnVDef);
+    });
+    btnVTop.addEventListener('click', () => {
+      controls.setView(0, 0.05, 16.0);
+      setActiveViewBtn(btnVTop);
+    });
+    btnVFront.addEventListener('click', () => {
+      controls.setView(0, Math.PI * 0.46, 14.0);
+      setActiveViewBtn(btnVFront);
+    });
+    btnVIso.addEventListener('click', () => {
+      controls.setView(Math.PI * 0.25, Math.PI * 0.35, 15.0);
+      setActiveViewBtn(btnVIso);
+    });
+
+    // 简单右上角罗盘画板 (RGB XYZ Gizmo)
+    const gizmoCanvas = document.getElementById('gizmoCanvas');
+    const gizmoCtx = gizmoCanvas.getContext('2d');
+
+    function drawGizmo() {
+      gizmoCtx.clearRect(0, 0, 72, 72);
+      const cx = 36, cy = 36, len = 22;
+
+      // 基于主相机旋转矩阵提取基向量
+      const e = camera.matrixWorldInverse.elements;
+      const axes = [
+        { label: 'X', color: '#EF4444', x: e[0], y: -e[1] },
+        { label: 'Y', color: '#10B981', x: e[4], y: -e[5] },
+        { label: 'Z', color: '#3B82F6', x: e[8], y: -e[9] }
+      ];
+
+      axes.forEach(axis => {
+        gizmoCtx.beginPath();
+        gizmoCtx.moveTo(cx, cy);
+        const tox = cx + axis.x * len;
+        const toy = cy + axis.y * len;
+        gizmoCtx.lineTo(tox, toy);
+        gizmoCtx.strokeStyle = axis.color;
+        gizmoCtx.lineWidth = 2.5;
+        gizmoCtx.stroke();
+
+        gizmoCtx.beginPath();
+        gizmoCtx.arc(tox, toy, 4.5, 0, Math.PI * 2);
+        gizmoCtx.fillStyle = axis.color;
+        gizmoCtx.fill();
+      });
+    }
+
+    // 轻提示 Toast
+    const toastEl = document.getElementById('editorToast');
+    let toastTimer = null;
+    function showToast(msg) {
+      if (toastTimer) clearTimeout(toastTimer);
+      toastEl.textContent = msg;
+      toastEl.classList.add('show');
+      toastTimer = setTimeout(() => {
+        toastEl.classList.remove('show');
+      }, 2400);
+    }
+
+    // 纯代码合成机械锁死吸附声 (Web Audio API)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playSnapSound() {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(260, now);
+      osc.frequency.exponentialRampToValueAtTime(80, now + 0.12);
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.12);
+    }
+
+    // 窗口尺寸变化处理
+    function onResize() {
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      if (!w || !h) return;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    }
+
+    // 键盘快捷键监听
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault();
+        if (selectedPartIdx >= 0 && selectedPartIdx < partsData.length) {
+          snapPartToPosition(selectedPartIdx);
+        }
+      } else if (e.code === 'KeyR' || e.key === 'r') {
+        resetAllAssembly();
+      } else if (e.key === 'ArrowLeft') {
+        window.location.href = 'page8.html';
+      } else if (e.key === 'ArrowRight') {
+        window.location.href = 'page10.html';
+      }
+    });
+
+    // =========================================================
+    // 6. 渲染循环 (60FPS Render Loop)
+    // =========================================================
+    function animate() {
+      requestAnimationFrame(animate);
+
+      // 1. 更新视角阻尼控制器
+      controls.update();
+
+      // 2. 处理吸附补间动画
+      const now = performance.now();
+      for (let i = animatingParts.length - 1; i >= 0; i--) {
+        const item = animatingParts[i];
+        const elapsed = now - item.startTime;
+        const t = Math.min(1.0, elapsed / item.duration);
+        const ease = 1 - Math.pow(1 - t, 3); // 三次方缓出
+
+        item.group.position.lerpVectors(item.startPos, item.targetPos, ease);
+
+        if (t >= 1.0) {
+          item.group.position.copy(item.targetPos);
+          animatingParts.splice(i, 1);
+          onPartSnapped(item.partIndex);
+        }
+      }
+
+      // 3. 悬浮未安装零件轻微浮动
+      if (selectedPartIdx >= 0 && selectedPartIdx < partsData.length) {
+        const part = partsData[selectedPartIdx];
+        if (!part.isAssembled && animatingParts.every(a => a.partIndex !== selectedPartIdx)) {
+          const grp = partGroups[selectedPartIdx];
+          grp.position.y = part.spawnPos.y + Math.sin(now * 0.003) * 0.08;
+        }
+      }
+
+      // 4. 若全部组装完成，旋转易拉罐出糖盘演示旋转
+      if (isFullyAssembled) {
+        const canGrp = partGroups[5];
+        if (canGrp) canGrp.rotation.y += 0.18;
+      }
+
+      // 5. 渲染 3D 场景与右上角罗盘
+      renderer.render(scene, camera);
+      drawGizmo();
+    }
+
+    // 启动初始化
+    initThree();
+    renderSidebarList();
+    animate();
+  </script>
+</body>
+</html>

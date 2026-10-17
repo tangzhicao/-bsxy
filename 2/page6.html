@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>棉花糖的秘密 - 离心现象与向心力的物理原理（理论篇）</title>
+  <style>
+    /* =========================================================
+       1. 全局设计规范 (水彩糖果风 & 极致毛玻璃 & 宽敞呼吸感)
+       ========================================================= */
+    :root {
+      /* 核心主色：奶油白、浅天蓝、马卡龙粉、鹅黄 */
+      --color-cream: #FFF9F0;
+      --color-sky-blue: #E6F2FF;
+      --color-macaron-pink: #FFD6E0;
+      --color-goose-yellow: #FFF3C4;
+
+      /* 文字色：深灰与暖黑，在半透明毛玻璃上对比度高 */
+      --text-deep: #2A2423;
+      --text-main: #3F3736;
+      --text-muted: #6B6261;
+      --text-light: #8E8483;
+
+      /* 用户指定高通透毛玻璃规范 (透明度 0.35, 模糊 20px, 边框 0.6) */
+      --glass-card-bg: rgba(255, 255, 255, 0.35);
+      --glass-card-bg-active: rgba(255, 255, 255, 0.45);
+      --glass-sub-bg: rgba(255, 255, 255, 0.30);
+      --glass-border: 1px solid rgba(255, 255, 255, 0.60);
+      --glass-border-strong: 1.6px solid rgba(255, 255, 255, 0.75);
+      --glass-blur: blur(20px);
+      --glass-shadow: 0 12px 36px rgba(160, 130, 140, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.95);
+      --glass-shadow-hover: 0 18px 48px rgba(255, 140, 160, 0.16), inset 0 1px 2px rgba(255, 255, 255, 0.98);
+
+      /* 文字微光立体阴影 */
+      --text-glow-shadow: 0 1px 2px rgba(255, 255, 255, 0.85);
+
+      /* 物理概念主题渐变 */
+      --grad-pink: linear-gradient(135deg, #FFA8BA 0%, #FF6080 100%);
+      --grad-blue: linear-gradient(135deg, #74B9FF 0%, #2563EB 100%);
+      --grad-amber: linear-gradient(135deg, #FBBF24 0%, #D97706 100%);
+      --grad-purple: linear-gradient(135deg, #C084FC 0%, #7C3AED 100%);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", "Segoe UI", sans-serif;
+      color: var(--text-main);
+      position: relative;
+      background-color: #F8F4EE;
+    }
+
+    /* =========================================================
+       2. 水彩糖果背景层与柔和粒子系统
+       ========================================================= */
+    .bg-watercolor-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background-image: url('assets/watercolor-bg.jpg');
+      background-repeat: no-repeat;
+      background-position: center center;
+      background-size: cover;
+      pointer-events: none;
+    }
+
+    /* 极轻微遮罩，让水彩云朵与柔和纹理彻底透出 */
+    .bg-soft-mask {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background: radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.04) 0%, rgba(255, 250, 246, 0.08) 70%, rgba(255, 240, 245, 0.14) 100%);
+      pointer-events: none;
+    }
+
+    .candy-particles {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .particle {
+      position: absolute;
+      border-radius: 999px;
+      opacity: 0.70;
+      animation: floatGentle 9s ease-in-out infinite alternate;
+    }
+    .p-1 { width: 18px; height: 8px; background: #FFB3C6; top: 12%; left: 7%; transform: rotate(25deg); animation-delay: 0s; }
+    .p-2 { width: 15px; height: 7px; background: #BDE0FE; top: 20%; right: 9%; transform: rotate(-30deg); animation-delay: -2s; }
+    .p-3 { width: 20px; height: 8px; background: #FFE6A7; top: 80%; left: 9%; transform: rotate(45deg); animation-delay: -4s; }
+    .p-4 { width: 10px; height: 10px; background: #FFF; border-radius: 50%; box-shadow: 0 0 12px #FFF; top: 16%; right: 20%; animation-delay: -1s; }
+    .p-5 { width: 8px; height: 8px; background: #FFF; border-radius: 50%; box-shadow: 0 0 10px #FFF; top: 68%; right: 12%; animation-delay: -3s; }
+
+    @keyframes floatGentle {
+      0% { transform: translateY(0) rotate(0deg); opacity: 0.55; }
+      100% { transform: translateY(-14px) rotate(10deg); opacity: 0.85; }
+    }
+
+    /* =========================================================
+       3. 页面主自适应容器 (16:9 / 1920x1080 居中宽敞排版)
+       ========================================================= */
+    .presentation-container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 16px 48px 14px;
+      max-width: 1720px;
+      margin: 0 auto;
+    }
+
+    /* 顶部导航与标签 (字号 >= 18px) */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+
+    .top-nav-back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 20px;
+      background: var(--glass-card-bg);
+      border: 1.6px solid rgba(255, 180, 200, 0.85);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 999px;
+      font-size: 18px;
+      font-weight: 800;
+      color: #E91E63;
+      text-decoration: none;
+      box-shadow: 0 4px 14px rgba(233, 30, 99, 0.12);
+      transition: all 0.25s ease;
+      cursor: pointer;
+    }
+    .top-nav-back-btn:hover {
+      background: rgba(255, 255, 255, 0.65);
+      color: #C2185B;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(233, 30, 99, 0.25);
+    }
+
+    .tag-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 22px;
+      background: var(--glass-card-bg);
+      border: var(--glass-border);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 999px;
+      font-size: 18px;
+      font-weight: 700;
+      color: #6D28D9;
+      box-shadow: 0 4px 14px rgba(109, 40, 217, 0.08);
+      text-shadow: var(--text-glow-shadow);
+    }
+    .tag-badge .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #8B5CF6;
+      box-shadow: 0 0 8px #8B5CF6;
+    }
+
+    .top-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .quick-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 20px;
+      background: var(--glass-card-bg);
+      border: var(--glass-border);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 999px;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+      cursor: pointer;
+      box-shadow: var(--glass-shadow);
+      transition: all 0.25s ease;
+    }
+    .quick-toggle-btn:hover {
+      background: rgba(255, 255, 255, 0.6);
+      transform: translateY(-2px);
+      color: #E91E63;
+      border-color: rgba(255, 180, 200, 0.9);
+    }
+
+    .page-indicator-top {
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--text-muted);
+      background: var(--glass-card-bg);
+      padding: 7px 20px;
+      border-radius: 999px;
+      border: var(--glass-border);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      box-shadow: var(--glass-shadow);
+      text-shadow: var(--text-glow-shadow);
+    }
+
+    /* =========================================================
+       4. 顶部标题区 (主标题 >= 52px，气派舒展)
+       ========================================================= */
+    .hero-section {
+      text-align: center;
+      margin: 6px 0 14px 0;
+      flex-shrink: 0;
+    }
+
+    .main-title {
+      font-size: 52px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      line-height: 1.15;
+      color: var(--text-deep);
+      text-shadow: 0 2px 4px rgba(255, 255, 255, 0.9), 0 4px 16px rgba(180, 130, 150, 0.12);
+      display: inline-flex;
+      align-items: center;
+      gap: 16px;
+      justify-content: center;
+    }
+
+    .sparkle-icon {
+      width: 32px;
+      height: 32px;
+      color: #FF708F;
+      animation: spinGentle 12s linear infinite;
+    }
+    @keyframes spinGentle {
+      0% { transform: rotate(0deg) scale(1); }
+      50% { transform: rotate(180deg) scale(1.1); }
+      100% { transform: rotate(360deg) scale(1); }
+    }
+
+    .subtitle {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-top: 6px;
+      text-shadow: var(--text-glow-shadow);
+    }
+
+    /* =========================================================
+       5. 纯理论推导主体：居中放大卡片流 (宽敞、舒展、通透)
+       ========================================================= */
+    .theory-main-flow {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-evenly;
+      width: 100%;
+      max-width: 1320px;
+      margin: 0 auto;
+      gap: 16px;
+      min-height: 0;
+    }
+
+    /* 分步进度指示提示条 */
+    .step-prompt-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 24px;
+      background: var(--glass-card-bg);
+      border: var(--glass-border);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 999px;
+      font-size: 17px;
+      font-weight: 700;
+      color: #9D174D;
+      box-shadow: 0 4px 16px rgba(180, 100, 120, 0.08);
+      cursor: pointer;
+      transition: all 0.25s ease;
+      flex-shrink: 0;
+    }
+    .step-prompt-bar:hover {
+      background: rgba(255, 255, 255, 0.55);
+      border-color: rgba(255, 140, 180, 0.8);
+      transform: translateY(-1px);
+    }
+    .step-prompt-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .pulse-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #EC4899;
+      box-shadow: 0 0 10px #EC4899;
+      animation: pulseAnim 1.6s ease-in-out infinite;
+    }
+    @keyframes pulseAnim {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.35); opacity: 1; }
+    }
+    .kbd-shortcut {
+      display: inline-block;
+      padding: 2px 10px;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(255, 160, 180, 0.8);
+      border-radius: 6px;
+      font-size: 15px;
+      font-family: monospace;
+      color: #BE185D;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    }
+
+    /* =========================================================
+       6. 三张核心大卡片样式 (0.35 高通透毛玻璃 + 20px 模糊)
+       ========================================================= */
+    .theory-card {
+      background: var(--glass-card-bg);
+      border: var(--glass-border);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 22px;
+      box-shadow: var(--glass-shadow);
+      padding: 20px 36px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .theory-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 6px;
+      background: transparent;
+      transition: background 0.3s ease;
+    }
+
+    .theory-card.card-concept::before { background: var(--grad-pink); }
+    .theory-card.card-formula::before { background: var(--grad-blue); }
+    .theory-card.card-conclusion::before { background: var(--grad-amber); }
+
+    .theory-card:hover {
+      background: var(--glass-card-bg-active);
+      box-shadow: var(--glass-shadow-hover);
+      transform: translateY(-2px);
+    }
+
+    .theory-card.active-focus {
+      border: 1.8px solid rgba(255, 255, 255, 0.85);
+      box-shadow: 0 14px 40px rgba(255, 140, 170, 0.18), inset 0 1px 3px rgba(255, 255, 255, 0.98);
+    }
+
+    /* 卡片顶部标题行 */
+    .card-head-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+
+    .card-head-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .card-pill-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 18px;
+      border-radius: 999px;
+      font-size: 19px;
+      font-weight: 800;
+      color: #FFF;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+      letter-spacing: 0.2px;
+    }
+    .pill-pink { background: var(--grad-pink); }
+    .pill-blue { background: var(--grad-blue); }
+    .pill-amber { background: var(--grad-amber); }
+
+    .card-title-text {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text-deep);
+      text-shadow: var(--text-glow-shadow);
+      letter-spacing: -0.2px;
+    }
+
+    .card-topic-tag {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      padding: 4px 14px;
+      border-radius: 999px;
+      backdrop-filter: blur(8px);
+      text-shadow: var(--text-glow-shadow);
+    }
+
+    /* 骨架占位展开提示 (未揭晓时显示) */
+    .card-collapsed-tip {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 18px;
+      background: rgba(255, 255, 255, 0.25);
+      border: 1px dashed rgba(200, 180, 190, 0.7);
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      color: #9D174D;
+      text-shadow: var(--text-glow-shadow);
+      animation: pulseHint 2s infinite ease-in-out;
+    }
+    @keyframes pulseHint {
+      0%, 100% { opacity: 0.75; transform: translateX(0); }
+      50% { opacity: 1; transform: translateX(4px); }
+    }
+
+    /* 卡片详细内容区 (支持折叠/展开动画) */
+    .card-body-content {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), max-height 0.45s ease;
+    }
+
+    /* 折叠隐藏状态 */
+    .theory-card.state-hidden .card-body-content {
+      opacity: 0;
+      max-height: 0;
+      overflow: hidden;
+      transform: translateY(12px);
+      pointer-events: none;
+      margin-top: 0;
+    }
+    .theory-card.state-hidden .card-collapsed-tip {
+      display: flex;
+    }
+
+    /* 展开就绪状态 */
+    .theory-card.state-revealed .card-body-content {
+      opacity: 1;
+      max-height: 500px;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    .theory-card.state-revealed .card-collapsed-tip {
+      display: none;
+    }
+
+    /* 正文文字规范 (字号 >= 22px，行高宽裕，文字微光阴影) */
+    .body-paragraph {
+      font-size: 23px;
+      font-weight: 500;
+      line-height: 1.68;
+      color: var(--text-deep);
+      text-shadow: var(--text-glow-shadow);
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .body-lead-icon {
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .highlight-force {
+      color: #DC2626;
+      font-weight: 800;
+      background: rgba(254, 226, 226, 0.6);
+      padding: 1px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(248, 113, 113, 0.4);
+    }
+
+    .highlight-friction {
+      color: #B45309;
+      font-weight: 800;
+      background: rgba(254, 243, 199, 0.65);
+      padding: 1px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+    }
+
+    .highlight-centrifugal {
+      color: #9D174D;
+      font-weight: 800;
+      background: rgba(253, 232, 237, 0.7);
+      padding: 1px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(244, 114, 182, 0.45);
+    }
+
+    /* =========================================================
+       7. 核心公式排版区 (纯水平排版、斜杠、清晰圆润科学字体)
+       ========================================================= */
+    .formula-columns-wrap {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 4px;
+    }
+
+    .formula-card-sub {
+      background: var(--glass-sub-bg);
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-radius: 16px;
+      padding: 14px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 8px;
+      box-shadow: 0 4px 16px rgba(180, 140, 160, 0.06);
+      transition: all 0.25s ease;
+    }
+    .formula-card-sub:hover {
+      background: rgba(255, 255, 255, 0.45);
+      border-color: rgba(255, 255, 255, 0.85);
+      transform: translateY(-2px);
+    }
+
+    .formula-header-sub {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .formula-tag-sub {
+      font-size: 16px;
+      font-weight: 800;
+      color: #1E40AF;
+      background: rgba(219, 234, 254, 0.75);
+      padding: 3px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(147, 197, 253, 0.6);
+    }
+
+    .formula-desc-sub {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    /* 数学公式展示规范 (大号英文字母斜体，中文下标正体，水平排版) */
+    .formula-math-text {
+      font-family: "Times New Roman", "Cambria Math", "Nimbus Roman No9 L", Georgia, serif;
+      font-size: 26px;
+      font-weight: 700;
+      color: #1E293B;
+      text-shadow: var(--text-glow-shadow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      letter-spacing: 0.5px;
+      padding: 6px 0;
+    }
+
+    .formula-math-text i {
+      font-style: italic;
+      font-family: "Times New Roman", serif;
+      padding: 0 1px;
+    }
+
+    .formula-math-text .math-op {
+      font-family: system-ui, sans-serif;
+      font-style: normal;
+      font-weight: 500;
+      color: #64748B;
+      margin: 0 3px;
+    }
+
+    .formula-math-text .math-dot {
+      font-family: system-ui, sans-serif;
+      font-weight: 900;
+      color: #64748B;
+      margin: 0 1px;
+    }
+
+    .formula-math-text sub {
+      font-size: 0.75em;
+      font-style: italic;
+      margin-left: -1px;
+    }
+
+    .formula-math-text sub.math-sub-cn {
+      font-style: normal;
+      font-family: system-ui, sans-serif;
+      font-size: 0.72em;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .formula-math-text sup {
+      font-size: 0.75em;
+      font-style: normal;
+    }
+
+    .formula-footer-note {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: #2563EB;
+      text-align: center;
+      background: rgba(238, 242, 255, 0.5);
+      border-radius: 8px;
+      padding: 3px 8px;
+    }
+
+    /* 临界条件卡片专属强化 */
+    .critical-sub-card {
+      background: rgba(255, 245, 248, 0.35);
+      border-color: rgba(255, 180, 200, 0.75);
+    }
+    .critical-sub-card .formula-tag-sub {
+      color: #9F1239;
+      background: rgba(255, 228, 230, 0.75);
+      border-color: rgba(253, 164, 175, 0.6);
+    }
+    .critical-sub-card .formula-math-text {
+      color: #BE123C;
+    }
+    .critical-sub-card .formula-footer-note {
+      color: #BE123C;
+      background: rgba(255, 228, 230, 0.6);
+    }
+
+    .formula-summary-tip {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      border-radius: 10px;
+      padding: 6px 16px;
+      text-shadow: var(--text-glow-shadow);
+    }
+
+    /* =========================================================
+       8. 统一风格页脚导航栏 (上一页 / 下一页 / 6 / 12)
+       ========================================================= */
+    .footer-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      padding-top: 10px;
+      flex-shrink: 0;
+    }
+
+    .nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 24px;
+      background: var(--glass-card-bg);
+      border: 1.6px solid rgba(255, 180, 200, 0.85);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 999px;
+      font-size: 19px;
+      font-weight: 800;
+      color: #E91E63;
+      text-decoration: none;
+      box-shadow: 0 4px 16px rgba(233, 30, 99, 0.12);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      cursor: pointer;
+    }
+
+    .nav-btn:hover {
+      background: rgba(255, 255, 255, 0.7);
+      color: #C2185B;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(233, 30, 99, 0.25);
+    }
+
+    .nav-btn.btn-primary {
+      background: var(--grad-pink);
+      color: #FFF;
+      border: none;
+      box-shadow: 0 6px 20px rgba(255, 96, 128, 0.35);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+    .nav-btn.btn-primary:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 10px 28px rgba(255, 96, 128, 0.45);
+      background: linear-gradient(135deg, #FFA0B5 0%, #E84D70 100%);
+    }
+
+    .nav-center-flow {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--glass-card-bg);
+      border: var(--glass-border);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      padding: 6px 20px;
+      border-radius: 999px;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-shadow: var(--text-glow-shadow);
+    }
+
+    .flow-step-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.3);
+      transition: all 0.25s ease;
+    }
+    .flow-step-pill.done {
+      color: #10B981;
+      background: rgba(209, 250, 229, 0.7);
+    }
+    .flow-step-pill.current {
+      color: #BE185D;
+      background: rgba(253, 232, 237, 0.85);
+      box-shadow: 0 2px 8px rgba(190, 24, 93, 0.15);
+    }
+
+    .page-indicator-bottom {
+      font-size: 18px;
+      font-weight: 900;
+      color: #4A4A4A;
+      background: var(--glass-card-bg);
+      border: var(--glass-border);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      padding: 9px 24px;
+      border-radius: 999px;
+      box-shadow: var(--glass-shadow);
+      text-shadow: var(--text-glow-shadow);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. 背景水彩画与动态粒子 -->
+  <div class="bg-watercolor-layer"></div>
+  <div class="bg-soft-mask"></div>
+  <div class="candy-particles">
+    <div class="particle p-1"></div>
+    <div class="particle p-2"></div>
+    <div class="particle p-3"></div>
+    <div class="particle p-4"></div>
+    <div class="particle p-5"></div>
+  </div>
+
+  <!-- 2. 主页面容器 (16:9 舒展自适应排版) -->
+  <div class="presentation-container">
+
+    <!-- 顶部状态栏 -->
+    <div class="top-bar">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <a href="page5.html" class="top-nav-back-btn" title="返回第 5 页：棉花糖制作原理">
+          <span style="font-size: 20px; font-weight: 900;">←</span>
+          <span>上一页 (制作原理)</span>
+        </a>
+        <div class="tag-badge">
+          <span class="dot"></span>
+          <span>第一部分 · 棉花糖的化学与离心力</span>
+        </div>
+      </div>
+
+      <div class="top-bar-right">
+        <button class="quick-toggle-btn" id="btnToggleAll" title="一键展开或折叠全部内容">
+          <span id="btnToggleIcon">📖</span>
+          <span id="btnToggleText">一键全部展开</span>
+        </button>
+        <div class="page-indicator-top">第 6 页 / 理论推导篇</div>
+      </div>
+    </div>
+
+    <!-- 顶部标题区 -->
+    <div class="hero-section">
+      <h1 class="main-title">
+        <svg class="sparkle-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z"/>
+        </svg>
+        <span>为什么转得越快，糖丝飞得越远？</span>
+        <svg class="sparkle-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z"/>
+        </svg>
+      </h1>
+      <p class="subtitle">回顾高中物理：向心力、静摩擦力与离心现象。</p>
+    </div>
+
+    <!-- 纯理论推导主体：居中放大卡片流 (宽敞、舒展、通透) -->
+    <div class="theory-main-flow" id="theoryFlow">
+
+      <!-- 分步引导提示条 -->
+      <div class="step-prompt-bar" id="stepPromptBar" title="按空格键或点击此处依次揭晓">
+        <div class="step-prompt-left">
+          <span class="pulse-dot"></span>
+          <span id="stepPromptText">👉 框架已就绪 · 按 <span class="kbd-shortcut">Space</span> 或【点击空白】揭晓：1. 核心概念 (0 / 3)</span>
+        </div>
+        <div style="font-size: 15px; color: var(--text-muted);">
+          点击任意卡片也可直接展开
+        </div>
+      </div>
+
+      <!-- ==================== 卡片 1：核心概念 ==================== -->
+      <div class="theory-card card-concept state-hidden active-focus" id="card1" data-step="1">
+        <div class="card-head-row">
+          <div class="card-head-left">
+            <span class="card-pill-tag pill-pink">1. 核心概念</span>
+            <span class="card-title-text">谁在驱动圆周运动？</span>
+          </div>
+          <span class="card-topic-tag">🌀 动力学基础</span>
+        </div>
+
+        <div class="card-collapsed-tip">
+          <span>👉 点击卡片或按【空格键】揭晓核心概念</span>
+        </div>
+
+        <div class="card-body-content">
+          <div class="body-paragraph">
+            <span class="body-lead-icon">🔹</span>
+            <span>物体做圆周运动时，运动方向时刻改变，必须有一个<span class="highlight-force">指向圆心的合外力</span>提供向心加速度，这个力叫<strong>向心力</strong>。</span>
+          </div>
+          <div class="body-paragraph">
+            <span class="body-lead-icon">🔹</span>
+            <span>在棉花糖机转盘模型中，是转盘表面对糖浆的<span class="highlight-friction">【静摩擦力 f】</span>充当了维持圆周运动所需的向心力！</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== 卡片 2：理论推导 ==================== -->
+      <div class="theory-card card-formula state-hidden" id="card2" data-step="2">
+        <div class="card-head-row">
+          <div class="card-head-left">
+            <span class="card-pill-tag pill-blue">2. 理论推导</span>
+            <span class="card-title-text">力与速度的定量平衡</span>
+          </div>
+          <span class="card-topic-tag">📐 定量公式</span>
+        </div>
+
+        <div class="card-collapsed-tip">
+          <span>👉 点击卡片或按【空格键】揭晓物理公式与临界条件</span>
+        </div>
+
+        <div class="card-body-content">
+          <!-- 三栏水平公式排版 -->
+          <div class="formula-columns-wrap">
+
+            <!-- 公式 1：所需向心力 -->
+            <div class="formula-card-sub">
+              <div class="formula-header-sub">
+                <span class="formula-tag-sub">🎯 所需向心力</span>
+                <span class="formula-desc-sub">动力学需求</span>
+              </div>
+              <div class="formula-math-text">
+                <i>F</i><sub><i>n</i></sub>
+                <span class="math-op">=</span>
+                <i>m</i><span class="math-dot">·</span><i>r</i><span class="math-dot">·</span><i>&omega;</i><sup>2</sup>
+                <span class="math-op">=</span>
+                <i>m</i><span class="math-dot">·</span><i>v</i><sup>2</sup>
+                <span class="math-op">/</span>
+                <i>r</i>
+              </div>
+              <div class="formula-footer-note">
+                📈 随角速度 <i>&omega;</i> 的二次方剧增
+              </div>
+            </div>
+
+            <!-- 公式 2：最大静摩擦力 -->
+            <div class="formula-card-sub">
+              <div class="formula-header-sub">
+                <span class="formula-tag-sub">🛡️ 最大静摩擦力</span>
+                <span class="formula-desc-sub">提供力上限</span>
+              </div>
+              <div class="formula-math-text">
+                <i>f</i><sub>max</sub>
+                <span class="math-op">=</span>
+                <i>&mu;</i><span class="math-dot">·</span><i>m</i><span class="math-dot">·</span><i>g</i>
+              </div>
+              <div class="formula-footer-note">
+                🔒 静摩擦力的绝对物理瓶颈
+              </div>
+            </div>
+
+            <!-- 公式 3：临界极限条件 -->
+            <div class="formula-card-sub critical-sub-card">
+              <div class="formula-header-sub">
+                <span class="formula-tag-sub">⚡ 临界极限条件</span>
+                <span class="formula-desc-sub">刚好飞出的临界</span>
+              </div>
+              <div class="formula-math-text">
+                <i>&omega;</i><sub class="math-sub-cn">临界</sub>
+                <span class="math-op">=</span>
+                &radic;(<i>&mu;</i><span class="math-dot">·</span><i>g</i> <span class="math-op">/</span> <i>r</i>)
+              </div>
+              <div class="formula-footer-note">
+                ⚖️ <i>&mu;·m·g</i> = <i>m·r·&omega;</i>² (质量 <i>m</i> 约去)
+              </div>
+            </div>
+
+          </div>
+
+          <div class="formula-summary-tip">
+            💡 <strong>物理定律洞察：</strong>转速 <i>&omega;</i> 提高时，所需向心力按<strong>二次方指数级激增</strong>！但盘面静摩擦力存在物理上限值 (<i>f</i><sub>max</sub>)。
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== 卡片 3：结论总结 ==================== -->
+      <div class="theory-card card-conclusion state-hidden" id="card3" data-step="3">
+        <div class="card-head-row">
+          <div class="card-head-left">
+            <span class="card-pill-tag pill-amber">3. 结论总结</span>
+            <span class="card-title-text">离心现象与制糖奥秘</span>
+          </div>
+          <span class="card-topic-tag">🍬 实践应用</span>
+        </div>
+
+        <div class="card-collapsed-tip">
+          <span>👉 点击卡片或按【空格键】揭晓制糖离心现象</span>
+        </div>
+
+        <div class="card-body-content">
+          <div class="body-paragraph">
+            <span class="body-lead-icon">💥</span>
+            <span>当转速 <i>&omega;</i> 增大超过临界值时，需要的向心力超过了最大静摩擦力（<span class="highlight-force"><i>F</i><sub>需</sub> &gt; <i>f</i><sub>max</sub></span>）。盘面“拉不住”糖块，糖块因<strong>惯性沿切线方向高速甩出</strong>，这就是著名的<strong>“离心现象”</strong>！</span>
+          </div>
+          <div class="body-paragraph">
+            <span class="body-lead-icon">🍥</span>
+            <span><strong>棉花糖机工作原理：</strong>出糖内胆以高达 <span class="highlight-centrifugal">2800 RPM</span>（约 293 rad/s）的超高速旋转，将熔化的液态糖浆瞬间拉伸撕裂成仅几微米粗的糖丝！</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 底部统一导航栏 -->
+    <div class="footer-bar">
+      <a href="page5.html" class="nav-btn" title="返回第 5 页：棉花糖制作原理">
+        <span>←</span>
+        <span>上一页 (制作原理)</span>
+      </a>
+
+      <div class="nav-center-flow">
+        <span style="color: #BE185D;">📚 教学流程：</span>
+        <span class="flow-step-pill" id="pillStep1">1. 核心概念</span>
+        <span>→</span>
+        <span class="flow-step-pill" id="pillStep2">2. 理论推导</span>
+        <span>→</span>
+        <span class="flow-step-pill" id="pillStep3">3. 结论总结</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <a href="page7.html" class="nav-btn btn-primary" id="btnNextSim">
+          <span>进入第 7 页：3D 模拟实验</span>
+          <span>→</span>
+        </a>
+        <div class="page-indicator-bottom">6 / 12</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // =========================================================
+    // 纯理论篇交互逻辑：分步揭晓卡片 & 键盘/鼠标控制
+    // =========================================================
+    let currentStep = 0; // 0: 骨架就绪, 1: 卡片1展开, 2: 卡片2展开, 3: 全部展开
+    const totalSteps = 3;
+
+    const cards = [
+      document.getElementById('card1'),
+      document.getElementById('card2'),
+      document.getElementById('card3')
+    ];
+
+    const pills = [
+      document.getElementById('pillStep1'),
+      document.getElementById('pillStep2'),
+      document.getElementById('pillStep3')
+    ];
+
+    const stepPromptBar = document.getElementById('stepPromptBar');
+    const stepPromptText = document.getElementById('stepPromptText');
+    const btnToggleAll = document.getElementById('btnToggleAll');
+    const btnToggleIcon = document.getElementById('btnToggleIcon');
+    const btnToggleText = document.getElementById('btnToggleText');
+    const btnNextSim = document.getElementById('btnNextSim');
+
+    function updateStepUI() {
+      // 1. 更新卡片展开状态与高光聚焦
+      cards.forEach((card, idx) => {
+        const stepNum = idx + 1;
+        if (stepNum <= currentStep) {
+          card.classList.remove('state-hidden');
+          card.classList.add('state-revealed');
+        } else {
+          card.classList.remove('state-revealed');
+          card.classList.add('state-hidden');
+        }
+
+        if (stepNum === currentStep + 1 || (currentStep === 0 && stepNum === 1)) {
+          card.classList.add('active-focus');
+        } else {
+          card.classList.remove('active-focus');
+        }
+      });
+
+      // 2. 更新底部药丸流程
+      pills.forEach((pill, idx) => {
+        const stepNum = idx + 1;
+        if (stepNum < currentStep) {
+          pill.className = 'flow-step-pill done';
+          pill.innerHTML = `✓ ${stepNum}. ${['核心概念', '理论推导', '结论总结'][idx]}`;
+        } else if (stepNum === currentStep) {
+          pill.className = 'flow-step-pill current';
+          pill.innerHTML = `👉 ${stepNum}. ${['核心概念', '理论推导', '结论总结'][idx]}`;
+        } else {
+          pill.className = 'flow-step-pill';
+          pill.innerHTML = `${stepNum}. ${['核心概念', '理论推导', '结论总结'][idx]}`;
+        }
+      });
+
+      // 3. 更新提示条文案
+      if (currentStep === 0) {
+        stepPromptText.innerHTML = `👉 框架已就绪 · 按 <span class="kbd-shortcut">Space</span> 或【点击空白】揭晓：1. 核心概念 (0 / 3)`;
+        btnToggleIcon.textContent = '📖';
+        btnToggleText.textContent = '一键全部展开';
+      } else if (currentStep === 1) {
+        stepPromptText.innerHTML = `👉 概念已就绪 · 按 <span class="kbd-shortcut">Space</span> 或【点击空白】揭晓：2. 理论推导与公式 (1 / 3)`;
+        btnToggleIcon.textContent = '📖';
+        btnToggleText.textContent = '一键全部展开';
+      } else if (currentStep === 2) {
+        stepPromptText.innerHTML = `👉 公式已就绪 · 按 <span class="kbd-shortcut">Space</span> 或【点击空白】揭晓：3. 结论总结 (2 / 3)`;
+        btnToggleIcon.textContent = '📖';
+        btnToggleText.textContent = '一键全部展开';
+      } else {
+        stepPromptText.innerHTML = `🎉 理论推导已全部揭晓！按 <span class="kbd-shortcut">Space</span> 或点击右下角进入【第 7 页：3D 模拟实验】`;
+        btnToggleIcon.textContent = '📑';
+        btnToggleText.textContent = '重新折叠分步演示';
+        btnNextSim.classList.add('pulse-ready');
+      }
+    }
+
+    // 单步前进
+    function nextStep() {
+      if (currentStep < totalSteps) {
+        currentStep++;
+        updateStepUI();
+      } else {
+        // 全部展开后再次按空格，直接前往第 7 页模拟实验
+        window.location.href = 'page7.html';
+      }
+    }
+
+    // 全部展开 / 折叠切换
+    function toggleAll() {
+      if (currentStep >= totalSteps) {
+        currentStep = 0;
+      } else {
+        currentStep = totalSteps;
+      }
+      updateStepUI();
+    }
+
+    // 点击单个卡片直接展开至该卡片
+    cards.forEach((card, idx) => {
+      card.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const targetStep = idx + 1;
+        if (currentStep < targetStep) {
+          currentStep = targetStep;
+        } else if (card.classList.contains('state-revealed') && currentStep === targetStep) {
+          // 如果点击当前卡片，也顺次进入下一步
+          if (currentStep < totalSteps) currentStep++;
+        }
+        updateStepUI();
+      });
+    });
+
+    // 提示条点击
+    stepPromptBar.addEventListener('click', (e) => {
+      e.stopPropagation();
+      nextStep();
+    });
+
+    // 全部展开按钮点击
+    btnToggleAll.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleAll();
+    });
+
+    // 空格键与方向键控制
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.code === 'ArrowRight' || e.code === 'Enter') {
+        e.preventDefault();
+        nextStep();
+      } else if (e.code === 'ArrowLeft') {
+        e.preventDefault();
+        if (currentStep > 0) {
+          currentStep--;
+          updateStepUI();
+        }
+      }
+    });
+
+    // 页面空白处点击触发下一步 (排除按钮、链接点击)
+    document.addEventListener('click', (e) => {
+      const interactiveEl = e.target.closest('button, a, .theory-card, .step-prompt-bar');
+      if (!interactiveEl) {
+        nextStep();
+      }
+    });
+
+    // 初始化状态
+    updateStepUI();
+  </script>
+</body>
+</html>

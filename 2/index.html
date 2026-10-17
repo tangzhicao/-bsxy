@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>棉花糖的秘密 - 课程总览</title>
+  <!-- 引入 Three.js 3D 渲染引擎 -->
+  <script src="three.min.js"></script>
+  <!-- 引入真实棉花糖高保真材质数据 -->
+  <script src="assets/cotton_candy_data.js"></script>
+  <!-- 引入3D马达爆炸图材质数据 -->
+  <script src="assets/motor_exploded_data.js"></script>
+  <style>
+    /* =========================================================
+       1. 全局设计规范 (水彩糖果风 & 统一毛玻璃系统)
+       ========================================================= */
+    :root {
+      /* 核心主色：奶油白、浅天蓝、马卡龙粉、鹅黄 */
+      --color-cream: #FFF9F0;
+      --color-sky-blue: #E6F2FF;
+      --color-macaron-pink: #FFD6E0;
+      --color-goose-yellow: #FFF3C4;
+      
+      /* 文字色：深灰与暖棕，确保在浅色背景上高可读性 */
+      --text-main: #4A4A4A;
+      --text-deep: #382E2D;
+      --text-muted: #6E6463;
+      --text-light: #8E8483;
+
+      /* 统一毛玻璃与半透规范 */
+      --glass-bg: rgba(255, 255, 255, 0.75);
+      --glass-bg-hover: rgba(255, 255, 255, 0.88);
+      --glass-border: rgba(255, 255, 255, 0.88);
+      --glass-blur: blur(12px);
+      --glass-shadow: 0 12px 32px rgba(150, 130, 140, 0.12), 0 4px 10px rgba(0, 0, 0, 0.03);
+      --glass-shadow-hover: 0 20px 44px rgba(255, 140, 160, 0.2), 0 8px 18px rgba(0, 0, 0, 0.05);
+
+      /* 糖果色功能按钮渐变 */
+      --btn-grad-pink: linear-gradient(135deg, #FFA8BA 0%, #FF708F 100%);
+      --btn-grad-blue: linear-gradient(135deg, #8EC5FC 0%, #60A5FA 100%);
+      --btn-grad-yellow: linear-gradient(135deg, #FFE066 0%, #F59E0B 100%);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", "Segoe UI", sans-serif;
+      color: var(--text-main);
+      position: relative;
+      background-color: #F8F4EE;
+    }
+
+    /* =========================================================
+       2. 统一水彩糖果背景层
+       ========================================================= */
+    .bg-watercolor-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background-image: url('assets/watercolor-bg.jpg');
+      background-repeat: no-repeat;
+      background-position: center center;
+      background-size: cover;
+      pointer-events: none;
+    }
+
+    /* 柔光微罩层：提升中心留白透气感，确保卡片与文字极佳的可读性 */
+    .bg-soft-mask {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background: radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.22) 0%, rgba(255, 250, 246, 0.38) 70%, rgba(255, 240, 245, 0.48) 100%);
+      pointer-events: none;
+    }
+
+    /* 少量缓慢浮动的彩色糖果粒子与星光点缀 */
+    .candy-particles {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .particle {
+      position: absolute;
+      border-radius: 999px;
+      opacity: 0.65;
+      animation: floatGentle 8s ease-in-out infinite alternate;
+    }
+    .p-1 { width: 14px; height: 6px; background: #FFB3C6; top: 22%; left: 16%; transform: rotate(25deg); animation-delay: 0s; }
+    .p-2 { width: 12px; height: 5px; background: #BDE0FE; top: 38%; right: 18%; transform: rotate(-30deg); animation-delay: -2s; }
+    .p-3 { width: 15px; height: 6px; background: #FFE6A7; top: 68%; left: 22%; transform: rotate(45deg); animation-delay: -4s; }
+    .p-4 { width: 6px; height: 6px; background: #FFF; border-radius: 50%; box-shadow: 0 0 8px #FFF; top: 28%; right: 28%; animation-delay: -1s; }
+    .p-5 { width: 5px; height: 5px; background: #FFF; border-radius: 50%; box-shadow: 0 0 6px #FFF; top: 62%; right: 24%; animation-delay: -3s; }
+
+    @keyframes floatGentle {
+      0% { transform: translateY(0) rotate(0deg); opacity: 0.55; }
+      100% { transform: translateY(-12px) rotate(8deg); opacity: 0.85; }
+    }
+
+    /* =========================================================
+       3. 投影单屏自适应容器 (16:9 / 1920x1080 优化)
+       ========================================================= */
+    .presentation-container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 22px 48px 18px;
+      max-width: 1720px;
+      margin: 0 auto;
+    }
+
+    /* 顶部导航与标签 (毛玻璃胶囊形态) */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+
+    .tag-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 18px;
+      background: var(--glass-bg);
+      border: 1.5px solid var(--glass-border);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 999px;
+      font-size: 14.5px;
+      font-weight: 600;
+      color: var(--text-main);
+      box-shadow: 0 4px 14px rgba(150, 130, 140, 0.08);
+      letter-spacing: 0.5px;
+    }
+    .tag-badge .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #FF8FA3;
+      box-shadow: 0 0 0 3px rgba(255, 143, 163, 0.25);
+    }
+
+    .page-indicator-top {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      padding: 6px 18px;
+      border-radius: 999px;
+      border: 1.5px solid var(--glass-border);
+      box-shadow: 0 4px 14px rgba(150, 130, 140, 0.08);
+      letter-spacing: 1px;
+    }
+
+    /* =========================================================
+       4. 标题与导语区域
+       ========================================================= */
+    .hero-section {
+      text-align: center;
+      margin-top: -4px;
+    }
+
+    .main-title {
+      font-size: clamp(38px, 4.2vw, 56px);
+      font-weight: 800;
+      color: var(--text-deep);
+      letter-spacing: 3px;
+      margin-bottom: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      position: relative;
+      text-shadow: 0 2px 12px rgba(255, 255, 255, 0.95), 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    /* 糖果风点缀星星 */
+    .sparkle-icon {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      color: #FFB703;
+      filter: drop-shadow(0 2px 4px rgba(255, 183, 3, 0.4));
+      animation: spinTwinkle 6s linear infinite;
+    }
+    @keyframes spinTwinkle {
+      0% { transform: rotate(0deg) scale(0.9); }
+      50% { transform: rotate(180deg) scale(1.15); }
+      100% { transform: rotate(360deg) scale(0.9); }
+    }
+
+    .subtitle {
+      font-size: clamp(17px, 1.6vw, 21px);
+      font-weight: 600;
+      color: #554847;
+      letter-spacing: 1.2px;
+      margin-bottom: 8px;
+      text-shadow: 0 1px 8px rgba(255, 255, 255, 0.9);
+    }
+
+    .guide-text {
+      font-size: clamp(13.5px, 1.2vw, 15.5px);
+      color: var(--text-muted);
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      text-shadow: 0 1px 6px rgba(255, 255, 255, 0.9);
+    }
+
+    /* =========================================================
+       5. 三张主讲模块卡片 (半透明毛玻璃质感)
+       ========================================================= */
+    .cards-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      gap: clamp(20px, 2.5vw, 40px);
+      margin: 10px auto 4px;
+      width: 100%;
+      max-width: 1360px;
+      perspective: 1000px;
+    }
+
+    .module-card {
+      flex: 1;
+      max-width: 410px;
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 22px;
+      padding: 24px 22px 22px;
+      box-shadow: var(--glass-shadow);
+      border: 1.8px solid var(--glass-border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      cursor: pointer;
+      opacity: 1;
+      transform: translateY(0);
+      animation: cardEntrance 0.5s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease, border-color 0.35s ease, background 0.35s ease;
+    }
+
+    /* 依次错开入场动画时间 (0.05s, 0.16s, 0.27s) */
+    .module-card:nth-child(1) { animation-delay: 0.05s; }
+    .module-card:nth-child(2) { animation-delay: 0.16s; }
+    .module-card:nth-child(3) { animation-delay: 0.27s; }
+
+    @keyframes cardEntrance {
+      from {
+        opacity: 0;
+        transform: translateY(28px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* 卡片悬停效果：提亮、微放与柔和阴影 */
+    .module-card:hover {
+      background: var(--glass-bg-hover);
+      transform: translateY(-8px) scale(1.025);
+      box-shadow: var(--glass-shadow-hover);
+    }
+    .module-card.theme-1:hover { border-color: rgba(255, 182, 193, 0.8); }
+    .module-card.theme-2:hover { border-color: rgba(160, 200, 240, 0.8); }
+    .module-card.theme-3:hover { border-color: rgba(255, 215, 120, 0.8); }
+
+    /* 卡片头部信息 */
+    .card-header-bar {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .part-tag {
+      font-size: 12.5px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 999px;
+      letter-spacing: 0.5px;
+    }
+    .theme-1 .part-tag { background: #FFE8EF; color: #D64562; }
+    .theme-2 .part-tag { background: #E8F3FF; color: #2B76D9; }
+    .theme-3 .part-tag { background: #FFF6D8; color: #B26A00; }
+
+    .speaker-name {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .speaker-name::before {
+      content: "🎤";
+      font-size: 13px;
+    }
+
+    .card-title {
+      font-size: clamp(17px, 1.4vw, 20px);
+      font-weight: 700;
+      color: var(--text-deep);
+      margin-bottom: 12px;
+      letter-spacing: 0.5px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+    }
+
+    /* 卡片内部视觉展示舞台 (半透质感微渐变) */
+    .visual-stage {
+      width: 100%;
+      height: 195px;
+      border-radius: 18px;
+      position: relative;
+      margin-bottom: 18px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      transition: transform 0.4s ease;
+    }
+
+    .theme-1 .visual-stage { background: linear-gradient(180deg, rgba(255, 246, 249, 0.92) 0%, rgba(255, 228, 238, 0.82) 100%); }
+    .theme-2 .visual-stage { background: linear-gradient(180deg, rgba(240, 247, 255, 0.82) 0%, rgba(226, 239, 255, 0.72) 100%); }
+    .theme-3 .visual-stage { background: linear-gradient(180deg, rgba(255, 251, 240, 0.82) 0%, rgba(255, 243, 212, 0.72) 100%); }
+
+    /* =========================================================
+       6. 绘制卡片配图与动画 (纯 SVG / CSS 3D 实现)
+       ========================================================= */
+
+    /* ----- 卡片 1：棉花糖 (3D 旋转 + 悬浮呼吸) ----- */
+    .marshmallow-scene {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      perspective: 600px;
+    }
+    .marshmallow-group {
+      position: relative;
+      width: 130px;
+      height: 160px;
+      transform-style: preserve-3d;
+      animation: floatMarshmallow 4.5s ease-in-out infinite, rotate3DY 8s linear infinite;
+    }
+    @keyframes floatMarshmallow {
+      0%, 100% { transform: translateY(0px) rotate(-1deg); }
+      50% { transform: translateY(-9px) rotate(2deg); }
+    }
+    @keyframes rotate3DY {
+      0% { transform: rotateY(0deg); }
+      100% { transform: rotateY(360deg); }
+    }
+    .stick {
+      position: absolute;
+      bottom: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 6px;
+      height: 86px;
+      background: linear-gradient(90deg, #F3F3F3, #FFFFFF 40%, #E0DEDB);
+      border-radius: 4px;
+      box-shadow: 1px 3px 6px rgba(0,0,0,0.12);
+      z-index: 1;
+    }
+    .cloud-svg {
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 122px;
+      height: 114px;
+      z-index: 2;
+      filter: drop-shadow(0 8px 16px rgba(255, 143, 163, 0.35));
+    }
+    .sparkles-container {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .sugar-dot {
+      position: absolute;
+      border-radius: 50%;
+      background: #FFF;
+      box-shadow: 0 0 6px #FFF;
+      animation: twinkleSugar 2.4s ease-in-out infinite alternate;
+    }
+    .s-dot1 { width: 5px; height: 5px; top: 22px; left: 16px; animation-delay: 0.2s; }
+    .s-dot2 { width: 7px; height: 7px; top: 18px; right: 24px; animation-delay: 0.8s; }
+    .s-dot3 { width: 4px; height: 4px; bottom: 45px; left: 22px; animation-delay: 1.4s; }
+    @keyframes twinkleSugar {
+      0% { opacity: 0.3; transform: scale(0.7); }
+      100% { opacity: 1; transform: scale(1.3); }
+    }
+
+    /* ----- 卡片 2：棉花糖机 (旋转出糖转盘 + 糖丝飞扬动画) ----- */
+    .machine-scene {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+    .machine-svg {
+      width: 156px;
+      height: 156px;
+      filter: drop-shadow(0 6px 14px rgba(96, 165, 250, 0.24));
+    }
+    .spinner-disc {
+      transform-origin: 75px 65px;
+      animation: spinCenter 3s linear infinite;
+    }
+    @keyframes spinCenter {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .sugar-thread {
+      animation: sugarSpurt 1.8s ease-out infinite;
+      transform-origin: 75px 65px;
+    }
+    .st-2 { animation-delay: 0.6s; }
+    .st-3 { animation-delay: 1.2s; }
+    @keyframes sugarSpurt {
+      0% { stroke-dashoffset: 40; opacity: 0; }
+      50% { opacity: 0.9; }
+      100% { stroke-dashoffset: 0; opacity: 0.1; }
+    }
+
+    /* ----- 卡片 3：马达原理 (转子线圈 3D 旋转 + 磁感线流动) ----- */
+    .motor-scene {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+    .motor-svg {
+      width: 168px;
+      height: 156px;
+      filter: drop-shadow(0 6px 14px rgba(245, 158, 11, 0.2));
+    }
+    .motor-coil-wrap {
+      transform-origin: 84px 75px;
+      animation: coilRotate3D 4s ease-in-out infinite alternate;
+    }
+    @keyframes coilRotate3D {
+      0% { transform: scaleX(1) skewY(0deg); }
+      50% { transform: scaleX(0.08) skewY(-8deg); }
+      100% { transform: scaleX(-1) skewY(0deg); }
+    }
+    .flux-line {
+      stroke-dasharray: 6 5;
+      animation: flowFlux 1.5s linear infinite;
+    }
+    @keyframes flowFlux {
+      to { stroke-dashoffset: -22; }
+    }
+
+    /* =========================================================
+       7. 胶囊形状糖果色按钮
+       ========================================================= */
+    .enter-btn {
+      width: 82%;
+      max-width: 220px;
+      padding: 10.5px 0;
+      border-radius: 999px;
+      border: none;
+      font-size: 14.5px;
+      font-weight: 700;
+      color: #FFFFFF;
+      letter-spacing: 1px;
+      cursor: pointer;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, filter 0.2s ease;
+      outline: none;
+    }
+
+    .theme-1 .enter-btn {
+      background: var(--btn-grad-pink);
+      box-shadow: 0 6px 18px rgba(255, 112, 143, 0.38);
+    }
+    .theme-2 .enter-btn {
+      background: var(--btn-grad-blue);
+      box-shadow: 0 6px 18px rgba(96, 165, 250, 0.38);
+    }
+    .theme-3 .enter-btn {
+      background: var(--btn-grad-yellow);
+      box-shadow: 0 6px 18px rgba(245, 158, 11, 0.35);
+    }
+
+    .enter-btn:hover {
+      transform: translateY(-2px) scale(1.05);
+      filter: brightness(1.04);
+    }
+    .enter-btn:active {
+      transform: translateY(1px) scale(0.96);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-arrow {
+      font-size: 15px;
+      transition: transform 0.2s ease;
+    }
+    .enter-btn:hover .btn-arrow {
+      transform: translateX(4px);
+    }
+
+    /* =========================================================
+       8. 统一风格页脚导航栏 (毛玻璃一体化 Dock)
+       ========================================================= */
+    .footer-bar {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 2px;
+    }
+
+    .bottom-hint {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13.5px;
+      color: var(--text-muted);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-shadow: 0 1px 6px rgba(255, 255, 255, 0.9);
+      animation: pulseHint 2.4s ease-in-out infinite;
+    }
+    .hint-icon {
+      font-size: 14px;
+    }
+    @keyframes pulseHint {
+      0%, 100% { opacity: 0.75; transform: translateY(0); }
+      50% { opacity: 1; transform: translateY(-2px); }
+    }
+
+    /* 一体化毛玻璃底部导航控制器 */
+    .nav-dock-container {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 8px;
+    }
+
+    .nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8.5px 22px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 600;
+      border: 1.5px solid var(--glass-border);
+      cursor: pointer;
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      color: var(--text-main);
+      box-shadow: 0 4px 14px rgba(150, 130, 140, 0.08);
+      transition: all 0.25s ease;
+    }
+    .nav-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(255, 112, 143, 0.2);
+      background: #FFFFFF;
+      color: #FF708F;
+      border-color: rgba(255, 214, 224, 0.9);
+    }
+    .nav-btn:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    /* 第1页上一页置灰不可点击 */
+    .nav-btn:disabled {
+      opacity: 0.42;
+      cursor: not-allowed;
+      box-shadow: none;
+      background: rgba(255, 255, 255, 0.5);
+      color: #9C9291;
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* 底部统一页码指示 */
+    .page-counter-bottom {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: var(--text-main);
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      padding: 6.5px 20px;
+      border-radius: 999px;
+      border: 1.5px solid var(--glass-border);
+      box-shadow: 0 4px 14px rgba(150, 130, 140, 0.08);
+    }
+
+    /* 点击轻提示 Toast */
+    .toast-msg {
+      position: fixed;
+      bottom: 72px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(56, 46, 45, 0.92);
+      color: #FFF;
+      padding: 10px 22px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .toast-msg.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* 响应式微调 (针对笔记本 1366x768 或小高度屏幕) */
+    @media (max-height: 820px) {
+      .presentation-container { padding: 16px 36px 14px; }
+      .main-title { font-size: 38px; margin-bottom: 4px; }
+      .subtitle { font-size: 17px; margin-bottom: 4px; }
+      .guide-text { font-size: 13.5px; }
+      .visual-stage { height: 160px; margin-bottom: 12px; }
+      .cards-wrapper { margin: 8px auto 2px; }
+      .module-card { padding: 18px 18px 16px; border-radius: 20px; }
+      .enter-btn { padding: 9px 0; font-size: 13.5px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. 水彩糖果背景层 (奶油白+浅天蓝+马卡龙粉+鹅黄) -->
+  <div class="bg-watercolor-layer"></div>
+  <div class="bg-soft-mask"></div>
+
+  <!-- 2. 少量漂浮糖果粒子动效 -->
+  <div class="candy-particles">
+    <div class="particle p-1"></div>
+    <div class="particle p-2"></div>
+    <div class="particle p-3"></div>
+    <div class="particle p-4"></div>
+    <div class="particle p-5"></div>
+  </div>
+
+  <!-- 3. 投影单屏主体区域 -->
+  <main class="presentation-container">
+    
+    <!-- 顶部栏：学科小标签与右上角统一页码指示 -->
+    <header class="top-bar">
+      <div class="tag-badge">
+        <span class="dot"></span>
+        <span>物理与化学跨学科探究 · 科学探秘</span>
+      </div>
+      <div class="page-indicator-top">1 / 12</div>
+    </header>
+
+    <!-- 标题与导语区域 -->
+    <section class="hero-section">
+      <h1 class="main-title">
+        <svg class="sparkle-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z"/>
+        </svg>
+        棉花糖的秘密
+        <svg class="sparkle-icon" viewBox="0 0 24 24" fill="currentColor" style="animation-direction: reverse;">
+          <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z"/>
+        </svg>
+      </h1>
+      <p class="subtitle">从晶莹白糖到蓬松云朵 —— 探秘蔗糖的理化性质与离心力</p>
+      <p class="guide-text">本节课我们将从化学、工程、物理三个角度，一步步揭开棉花糖背后的科学奥秘。</p>
+    </section>
+
+    <!-- 三大主讲模块卡片 (毛玻璃质感) -->
+    <section class="cards-wrapper">
+      
+      <!-- 卡片 1：化学与离心力 -->
+      <article class="module-card theme-1" data-part="1" tabindex="0" role="button" aria-label="进入第一部分：棉花糖的化学与离心力">
+        <div class="card-header-bar">
+          <span class="part-tag">第一部分</span>
+          <span class="speaker-name">同学A</span>
+        </div>
+        <h2 class="card-title">棉花糖的化学与离心力</h2>
+        
+        <!-- 配图 1：Three.js 蓬松真实 3D 棉花糖 (丝絮感+乱蓬蓬云朵+次表面散射) -->
+        <div class="visual-stage" id="cottonCandyStage">
+          <div id="cottonCandyCanvas" style="width: 100%; height: 100%; position: relative;"></div>
+        </div>
+
+        <button class="enter-btn">
+          <span>进入第一部分</span>
+          <span class="btn-arrow">→</span>
+        </button>
+      </article>
+
+      <!-- 卡片 2：棉花糖机装置 -->
+      <article class="module-card theme-2" data-part="2" tabindex="0" role="button" aria-label="进入第二部分：我们的棉花糖机装置">
+        <div class="card-header-bar">
+          <span class="part-tag">第二部分</span>
+          <span class="speaker-name">同学B</span>
+        </div>
+        <h2 class="card-title">我们的棉花糖机装置</h2>
+        
+        <!-- 配图 2：棉花糖机示意图 (圆筒+底座+旋转转盘与喷洒糖丝) -->
+        <div class="visual-stage">
+          <div class="machine-scene">
+            <svg class="machine-svg" viewBox="0 0 150 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="potGrad" x1="20" y1="40" x2="130" y2="105" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#EBF4FF"/>
+                  <stop offset="60%" stop-color="#CCE5FF"/>
+                  <stop offset="100%" stop-color="#99C7FF"/>
+                </linearGradient>
+                <linearGradient id="baseGrad" x1="40" y1="105" x2="110" y2="140" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#64748B"/>
+                  <stop offset="100%" stop-color="#334155"/>
+                </linearGradient>
+                <radialGradient id="heatGlow" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="#FF708F" stop-opacity="0.8"/>
+                  <stop offset="100%" stop-color="#FFD6E0" stop-opacity="0"/>
+                </radialGradient>
+              </defs>
+
+              <!-- 机械机身底座 -->
+              <rect x="42" y="104" width="66" height="30" rx="7" fill="url(#baseGrad)"/>
+              <rect x="52" y="112" width="12" height="12" rx="3" fill="#38BDF8"/>
+              <circle cx="86" cy="118" r="4" fill="#22C55E"/>
+              <line x1="42" y1="134" x2="108" y2="134" stroke="#1E293B" stroke-width="2"/>
+
+              <!-- 接糖盆 (圆筒腔体) -->
+              <path d="M22 52C22 45 35 40 75 40C115 40 128 45 128 52V82C128 92 105 104 75 104C45 104 22 92 22 82V52Z" fill="url(#potGrad)" stroke="#60A5FA" stroke-width="2.5"/>
+              <ellipse cx="75" cy="52" rx="53" ry="14" fill="#F0F7FF" stroke="#60A5FA" stroke-width="2"/>
+
+              <!-- 加热发热中心光晕 -->
+              <ellipse cx="75" cy="65" rx="32" ry="12" fill="url(#heatGlow)"/>
+
+              <!-- 旋转喷糖头 (带旋转动画) -->
+              <g class="spinner-disc">
+                <ellipse cx="75" cy="65" rx="20" ry="8" fill="#F59E0B" stroke="#D97706" stroke-width="1.5"/>
+                <ellipse cx="75" cy="63" rx="14" ry="5" fill="#FCD34D"/>
+                <circle cx="75" cy="63" r="3" fill="#B45309"/>
+                <!-- 喷糖细孔 -->
+                <circle cx="63" cy="65" r="1.5" fill="#78350F"/>
+                <circle cx="87" cy="65" r="1.5" fill="#78350F"/>
+                <circle cx="75" cy="69" r="1.5" fill="#78350F"/>
+              </g>
+
+              <!-- 离心飞扬糖丝弧线 (动画喷洒) -->
+              <path class="sugar-thread st-1" d="M60 63C45 58 35 68 30 76" stroke="#FF8FA3" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="12 4"/>
+              <path class="sugar-thread st-2" d="M90 64C105 60 115 70 120 78" stroke="#FF8FA3" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="14 4"/>
+              <path class="sugar-thread st-3" d="M75 58C80 48 95 48 108 52" stroke="#FFB703" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="10 3"/>
+            </svg>
+          </div>
+        </div>
+
+        <button class="enter-btn">
+          <span>进入第二部分</span>
+          <span class="btn-arrow">→</span>
+        </button>
+      </article>
+
+      <!-- 卡片 3：马达原理探究 -->
+      <article class="module-card theme-3" data-part="3" tabindex="0" role="button" aria-label="进入第三部分：马达原理探究">
+        <div class="card-header-bar">
+          <span class="part-tag">第三部分</span>
+          <span class="speaker-name">同学C</span>
+        </div>
+        <h2 class="card-title">马达原理探究</h2>
+        
+        <!-- 配图 3：Three.js 3D 电机爆炸图 (端盖+电刷+定子磁铁+转子线圈+转轴+外壳) -->
+        <div class="visual-stage" id="motorStage">
+          <div id="motorCanvas" style="width: 100%; height: 100%; position: relative;"></div>
+        </div>
+
+        <button class="enter-btn">
+          <span>进入第三部分</span>
+          <span class="btn-arrow">→</span>
+        </button>
+      </article>
+
+    </section>
+
+    <!-- 底部区域：交互引导与统一毛玻璃底栏 -->
+    <footer class="footer-bar">
+      <!-- 居中提示文字 -->
+      <div class="bottom-hint">
+        <span class="hint-icon">👆</span>
+        <span>点击卡片进入对应部分</span>
+      </div>
+
+      <!-- 统一毛玻璃控制器 -->
+      <nav class="nav-dock-container" aria-label="课堂课件页面导航">
+        <button class="nav-btn prev-btn" id="prevPageBtn" disabled title="已经是第一页">
+          <span>← 上一页</span>
+        </button>
+        <div class="page-counter-bottom">1 / 12</div>
+        <button class="nav-btn next-btn" id="nextPageBtn" title="前往第2页">
+          <span>下一页 →</span>
+        </button>
+      </nav>
+    </footer>
+
+  </main>
+
+  <!-- 点击反馈 Toast -->
+  <div class="toast-msg" id="toastMsg">
+    <span>💡</span>
+    <span id="toastText">准备就绪</span>
+  </div>
+
+  <!-- 原生 JavaScript 交互逻辑 -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const toast = document.getElementById('toastMsg');
+      const toastText = document.getElementById('toastText');
+      let toastTimer = null;
+
+      // 弹出轻提示辅助函数
+      function showToast(message) {
+        if (toastTimer) clearTimeout(toastTimer);
+        toastText.textContent = message;
+        toast.classList.add('show');
+        toastTimer = setTimeout(() => {
+          toast.classList.remove('show');
+        }, 2200);
+      }
+
+      // 卡片与按钮点击交互
+      const cards = document.querySelectorAll('.module-card');
+      const partNames = {
+        '1': '第一部分：棉花糖的化学与离心力（主讲：同学A）',
+        '2': '第二部分：我们的棉花糖机装置（主讲：同学B）',
+        '3': '第三部分：马达原理探究（主讲：同学C）'
+      };
+
+      cards.forEach(card => {
+        const partId = card.getAttribute('data-part');
+
+        function handleSelect(e) {
+          if (window.navigator && window.navigator.vibrate) {
+            window.navigator.vibrate(30);
+          }
+          showToast(`✨ 即将前往【${partNames[partId]}】`);
+          console.log(`[Navigation] Selected Part ${partId}: ${partNames[partId]}`);
+          if (partId === '1') {
+            setTimeout(() => { window.location.href = 'page2.html'; }, 400);
+          }
+        }
+
+        card.addEventListener('click', handleSelect);
+        
+        card.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleSelect(e);
+          }
+        });
+      });
+
+      // 底部“下一页”导航按钮点击
+      const nextPageBtn = document.getElementById('nextPageBtn');
+      if (nextPageBtn) {
+        nextPageBtn.addEventListener('click', () => {
+          showToast('📄 前往第 2 页：棉花糖机的历史');
+          setTimeout(() => { window.location.href = 'page2.html'; }, 350);
+        });
+      }
+
+      // 键盘左右方向键支持快速翻页
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight') {
+          if (nextPageBtn) nextPageBtn.click();
+        } else if (e.key === 'ArrowLeft') {
+          showToast('已经是第一页（封面页）啦');
+        }
+      });
+
+      // 初始化 Three.js 蓬松真实 3D 棉花糖
+      initCottonCandy3D();
+      // 初始化 Three.js 3D 电机爆炸图交互引擎
+      initMotor3D();
+    });
+
+    /**
+     * =========================================================
+     * Three.js 超逼真真实照片棉花糖引擎 (Photorealistic Cotton Candy Plane)
+     * 特性：高清透明底真棉花糖材质 + 自然摆锤钟摆轻晃 + 空气感上下悬浮 + 柔和呼吸 + 鼠标微透视倾角 + 动态接触阴影 + 微光晶粒
+     * =========================================================
+     */
+    function initCottonCandy3D() {
+      const container = document.getElementById('cottonCandyCanvas');
+      if (!container || !window.THREE) return;
+
+      const width = container.clientWidth || 360;
+      const height = container.clientHeight || 195;
+
+      const scene = new THREE.Scene();
+
+      // 透视相机，正视构图
+      const camera = new THREE.PerspectiveCamera(36, width / height, 0.1, 100);
+      camera.position.set(0, 0, 3.8);
+      camera.lookAt(0, 0, 0);
+
+      const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'high-performance' });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      if (THREE.sRGBEncoding) renderer.outputEncoding = THREE.sRGBEncoding;
+      container.appendChild(renderer.domElement);
+
+      // 根悬浮组 (上下浮动 + 鼠标微透视倾斜)
+      const floatGroup = new THREE.Group();
+      scene.add(floatGroup);
+
+      // 钟摆摆动组 (以底部手握纸棒处为旋转支点，左右自然摆动)
+      const swayPivot = new THREE.Group();
+      swayPivot.position.set(0, -0.92, 0); // 支点位于底部纸棒根部
+      floatGroup.add(swayPivot);
+
+      // 1. 加载高清晰度真实透明底棉花糖图片 (优先使用本地 base64 杜绝 CORS 问题，兼顾外部相对路径)
+      const textureSrc = window.COTTON_CANDY_BASE64 || 'assets/cotton_candy.png';
+      const textureLoader = new THREE.TextureLoader();
+      
+      const texture = textureLoader.load(textureSrc, () => {
+        renderer.render(scene, camera);
+      });
+      texture.generateMipmaps = true;
+      texture.minFilter = THREE.LinearMipmapLinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+
+      // 真实照片平面几何体 (高保真比例 420:694，尺寸饱满适配卡片舞台)
+      const candyHeight = 2.62;
+      const candyWidth = candyHeight * (420 / 694); // ~1.585
+      const candyGeom = new THREE.PlaneGeometry(candyWidth, candyHeight);
+      const candyMat = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        alphaTest: 0.005,
+        depthWrite: false
+      });
+      const cottonCandyMesh = new THREE.Mesh(candyGeom, candyMat);
+      // 将网格中心向上平移，使支点对齐到纸棒底部
+      cottonCandyMesh.position.set(0, candyHeight / 2 - 0.1, 0);
+      swayPivot.add(cottonCandyMesh);
+
+      // 2. 底部轻柔接触阴影 (随浮动高度动态缩放与淡化，增加空间悬浮真实感)
+      const shadowCanvas = document.createElement('canvas');
+      shadowCanvas.width = 128;
+      shadowCanvas.height = 128;
+      const sCtx = shadowCanvas.getContext('2d');
+      const grad = sCtx.createRadialGradient(64, 64, 0, 64, 64, 64);
+      grad.addColorStop(0, 'rgba(230, 110, 140, 0.32)');
+      grad.addColorStop(0.45, 'rgba(230, 110, 140, 0.12)');
+      grad.addColorStop(1, 'rgba(230, 110, 140, 0)');
+      sCtx.fillStyle = grad;
+      sCtx.fillRect(0, 0, 128, 128);
+      const shadowTex = new THREE.CanvasTexture(shadowCanvas);
+      const shadowMat = new THREE.MeshBasicMaterial({
+        map: shadowTex,
+        transparent: true,
+        depthWrite: false,
+        opacity: 0.75
+      });
+      const shadowMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.35, 0.38), shadowMat);
+      shadowMesh.position.set(0, -1.06, -0.05);
+      scene.add(shadowMesh);
+
+      // 3. 24 颗细腻微光砂糖晶粒 (漂浮在真棉花糖周围，丰富空间纵深)
+      const sparkleGeom = new THREE.BufferGeometry();
+      const sparklePos = new Float32Array(24 * 3);
+      for (let s = 0; s < 24; s++) {
+        sparklePos[s * 3] = (Math.random() - 0.5) * 2.4;
+        sparklePos[s * 3 + 1] = -0.7 + Math.random() * 2.0;
+        sparklePos[s * 3 + 2] = (Math.random() - 0.5) * 0.9;
+      }
+      sparkleGeom.setAttribute('position', new THREE.BufferAttribute(sparklePos, 3));
+      const sparkleMat = new THREE.PointsMaterial({
+        color: 0xFFF9EC,
+        size: 0.042,
+        transparent: true,
+        opacity: 0.8
+      });
+      const sparkles = new THREE.Points(sparkleGeom, sparkleMat);
+      scene.add(sparkles);
+
+      // 4. 鼠标悬停轻微倾角互动 (3D 交互跟随)
+      let mouseTiltX = 0;
+      let mouseTiltY = 0;
+      const card1 = document.querySelector('.module-card[data-part="1"]');
+      if (card1) {
+        card1.addEventListener('mousemove', (e) => {
+          const rect = card1.getBoundingClientRect();
+          const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+          const ny = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+          mouseTiltX = ny * 0.12;
+          mouseTiltY = nx * 0.16;
+        });
+        card1.addEventListener('mouseleave', () => {
+          mouseTiltX = 0;
+          mouseTiltY = 0;
+        });
+      }
+
+      // 现代化 ResizeObserver：无缝响应容器尺寸自适应
+      function updateSize(w, h) {
+        if (!w || !h) return;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+      }
+      if (window.ResizeObserver) {
+        const ro = new ResizeObserver((entries) => {
+          for (let entry of entries) {
+            const cr = entry.contentRect;
+            if (cr.width && cr.height) {
+              updateSize(cr.width, cr.height);
+            }
+          }
+        });
+        ro.observe(container);
+      }
+      window.addEventListener('resize', () => {
+        updateSize(container.clientWidth, container.clientHeight);
+      });
+
+      // 5. 动效循环 (缓慢左右摆动 + 上下浮动 + 呼吸律动)
+      const clock = new THREE.Clock();
+      let curTiltX = 0;
+      let curTiltY = 0;
+
+      // 首帧立即同步渲染，消除白屏
+      renderer.render(scene, camera);
+
+      function animate() {
+        requestAnimationFrame(animate);
+        const time = clock.getElapsedTime();
+
+        // A. 左右缓慢轻微摆动 (像真的被拿在手里轻微晃动，摆幅约 2.8 度)
+        swayPivot.rotation.z = Math.sin(time * 1.55) * 0.048;
+
+        // B. 上下轻盈浮动 (正弦悬浮)
+        const floatY = Math.sin(time * 2.1) * 0.055;
+        floatGroup.position.y = floatY;
+
+        // C. 平滑跟随鼠标微倾斜
+        curTiltX += (mouseTiltX - curTiltX) * 0.08;
+        curTiltY += (mouseTiltY - curTiltY) * 0.08;
+        floatGroup.rotation.y = curTiltY;
+        floatGroup.rotation.x = curTiltX;
+
+        // D. 极轻微呼吸微缩放 (充满生命感)
+        const breath = 1 + Math.sin(time * 2.8) * 0.01;
+        cottonCandyMesh.scale.set(breath, breath, 1);
+
+        // E. 阴影配合悬浮高度缩放与淡出
+        const normFloat = (floatY + 0.055) / 0.11; // 0 ~ 1
+        const shadowScale = 1 - normFloat * 0.22;
+        shadowMesh.scale.set(shadowScale, shadowScale, 1);
+        shadowMat.opacity = 0.72 - normFloat * 0.25;
+
+        // F. 砂糖晶粒缓慢自转
+        sparkles.rotation.y = -time * 0.12;
+
+        renderer.render(scene, camera);
+      }
+      animate();
+    }
+
+    /**
+     * =========================================================
+     * Three.js 3D 电机拆解爆炸图交互引擎 (3D Exploded Motor Engine)
+     * 特性：卡通 3D 渲染风部件 + 3D 轴向自转与微摆 + 上下空气感悬浮 + 鼠标 3D 交互微倾 + 动态接触阴影 + 磁感能量微粒
+     * =========================================================
+     */
+    function initMotor3D() {
+      const container = document.getElementById('motorCanvas');
+      if (!container || !window.THREE) return;
+
+      const width = container.clientWidth || 360;
+      const height = container.clientHeight || 195;
+
+      const scene = new THREE.Scene();
+
+      // 透视相机
+      const camera = new THREE.PerspectiveCamera(35, width / height, 0.1, 100);
+      camera.position.set(0, 0, 3.8);
+      camera.lookAt(0, 0, 0);
+
+      const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'high-performance' });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      if (THREE.sRGBEncoding) renderer.outputEncoding = THREE.sRGBEncoding;
+      container.appendChild(renderer.domElement);
+
+      // 主装配组 (上下悬浮 + 鼠标 3D 微倾互动)
+      const motorGroup = new THREE.Group();
+      scene.add(motorGroup);
+
+      // 慢速 3D 自转晃动组
+      const rockGroup = new THREE.Group();
+      motorGroup.add(rockGroup);
+
+      // 1. 加载 3D 电机爆炸图材质 (优先使用本地 base64 避免跨域阻拦)
+      const textureSrc = window.MOTOR_EXPLODED_BASE64 || 'assets/motor_exploded.png';
+      const textureLoader = new THREE.TextureLoader();
+      
+      const texture = textureLoader.load(textureSrc, () => {
+        renderer.render(scene, camera);
+      });
+      texture.generateMipmaps = true;
+      texture.minFilter = THREE.LinearMipmapLinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+
+      // 真实照片平面几何体 (比例 860:500 = 1.72，加大尺寸突出细节)
+      const motorWidth = 3.28;
+      const motorHeight = motorWidth / 1.72; // ~1.90
+      const motorGeom = new THREE.PlaneGeometry(motorWidth, motorHeight);
+      const motorMat = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        alphaTest: 0.005,
+        depthWrite: false
+      });
+      const motorMesh = new THREE.Mesh(motorGeom, motorMat);
+      motorMesh.position.set(0, 0.04, 0);
+      rockGroup.add(motorMesh);
+
+      // 2. 底部动态柔和接触阴影 (随悬浮高度舒缓缩放淡化)
+      const shadowCanvas = document.createElement('canvas');
+      shadowCanvas.width = 128;
+      shadowCanvas.height = 64;
+      const sCtx = shadowCanvas.getContext('2d');
+      const grad = sCtx.createRadialGradient(64, 32, 0, 64, 32, 60);
+      grad.addColorStop(0, 'rgba(180, 150, 90, 0.32)');
+      grad.addColorStop(0.5, 'rgba(180, 150, 90, 0.10)');
+      grad.addColorStop(1, 'rgba(180, 150, 90, 0)');
+      sCtx.fillStyle = grad;
+      sCtx.fillRect(0, 0, 128, 64);
+      const shadowTex = new THREE.CanvasTexture(shadowCanvas);
+      const shadowMat = new THREE.MeshBasicMaterial({
+        map: shadowTex,
+        transparent: true,
+        depthWrite: false,
+        opacity: 0.72
+      });
+      const shadowMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.45, 0.48), shadowMat);
+      shadowMesh.position.set(0, -0.96, -0.05);
+      scene.add(shadowMesh);
+
+      // 3. 磁感线能量微粒 (在定子磁铁 N/S 极与转子线圈周围缓缓流动)
+      const fluxCount = 22;
+      const fluxGeom = new THREE.BufferGeometry();
+      const fluxPos = new Float32Array(fluxCount * 3);
+      for (let i = 0; i < fluxCount; i++) {
+        fluxPos[i * 3] = -0.3 + (Math.random() - 0.5) * 1.6; // X: 沿转子及磁铁分布
+        fluxPos[i * 3 + 1] = (Math.random() - 0.5) * 1.1;    // Y: N极到S极之间
+        fluxPos[i * 3 + 2] = (Math.random() - 0.5) * 0.6;    // Z: 空间景深
+      }
+      fluxGeom.setAttribute('position', new THREE.BufferAttribute(fluxPos, 3));
+      const fluxMat = new THREE.PointsMaterial({
+        color: 0x38BDF8,
+        size: 0.045,
+        transparent: true,
+        opacity: 0.8
+      });
+      const fluxParticles = new THREE.Points(fluxGeom, fluxMat);
+      scene.add(fluxParticles);
+
+      // 4. 鼠标交互倾角 (悬停 Card 3 时随鼠标平滑微倾视角)
+      let mouseTiltX = 0;
+      let mouseTiltY = 0;
+      const card3 = document.querySelector('.module-card[data-part="3"]');
+      if (card3) {
+        card3.addEventListener('mousemove', (e) => {
+          const rect = card3.getBoundingClientRect();
+          const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+          const ny = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+          mouseTiltX = ny * 0.15;
+          mouseTiltY = nx * 0.18;
+        });
+        card3.addEventListener('mouseleave', () => {
+          mouseTiltX = 0;
+          mouseTiltY = 0;
+        });
+      }
+
+      // 现代化 ResizeObserver
+      function updateSize(w, h) {
+        if (!w || !h) return;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+      }
+      if (window.ResizeObserver) {
+        const ro = new ResizeObserver((entries) => {
+          for (let entry of entries) {
+            const cr = entry.contentRect;
+            if (cr.width && cr.height) {
+              updateSize(cr.width, cr.height);
+            }
+          }
+        });
+        ro.observe(container);
+      }
+      window.addEventListener('resize', () => {
+        updateSize(container.clientWidth, container.clientHeight);
+      });
+
+      // 5. 动效循环 (缓慢 3D 自转晃动 + 上下悬浮 + 呼吸律动)
+      const clock = new THREE.Clock();
+      let curTiltX = 0;
+      let curTiltY = 0;
+
+      renderer.render(scene, camera);
+
+      function animate() {
+        requestAnimationFrame(animate);
+        const time = clock.getElapsedTime();
+
+        // A. 缓慢 3D 轴向自转与微摆晃动 (像漂浮在展示台上的精美 3D 拆解模型)
+        rockGroup.rotation.z = Math.sin(time * 1.3) * 0.038;
+        rockGroup.rotation.y = Math.cos(time * 1.1) * 0.055;
+        rockGroup.rotation.x = Math.sin(time * 1.5) * 0.028;
+
+        // B. 上下轻盈正弦浮动
+        const floatY = Math.sin(time * 1.9) * 0.05;
+        motorGroup.position.y = floatY;
+
+        // C. 平滑跟随鼠标 3D 微倾视角
+        curTiltX += (mouseTiltX - curTiltX) * 0.08;
+        curTiltY += (mouseTiltY - curTiltY) * 0.08;
+        motorGroup.rotation.y = curTiltY;
+        motorGroup.rotation.x = curTiltX;
+
+        // D. 微幅呼吸缩放
+        const breath = 1 + Math.sin(time * 2.5) * 0.01;
+        motorMesh.scale.set(breath, breath, 1);
+
+        // E. 接触阴影动态缩放
+        const normFloat = (floatY + 0.05) / 0.1;
+        const shadowScale = 1 - normFloat * 0.2;
+        shadowMesh.scale.set(shadowScale, shadowScale, 1);
+        shadowMat.opacity = 0.7 - normFloat * 0.22;
+
+        // F. 磁感线能量微粒缓慢流转
+        fluxParticles.rotation.y = time * 0.2;
+
+        renderer.render(scene, camera);
+      }
+      animate();
+    }
+  </script>
+</body>
+</html>

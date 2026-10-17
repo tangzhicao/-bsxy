@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>棉花糖的秘密 - 第二部分：棉花糖机 3D 模型组装（第 8 页）</title>
+  <style>
+    /* =========================================================
+       1. 全局设计规范 (深空宇宙 / 科幻全息风 / 绝对居中视觉焦点)
+       ========================================================= */
+    :root {
+      /* 深空宇宙色彩 */
+      --space-dark: #050814;
+      --space-deep: #0B1120;
+      --space-nebula: #111A33;
+
+      /* 全息霓虹与辉光 */
+      --holo-cyan: #00F0FF;
+      --holo-cyan-glow: rgba(0, 240, 255, 0.55);
+      --holo-cyan-subtle: rgba(0, 240, 255, 0.15);
+      --holo-blue: #38BDF8;
+      --holo-purple: #818CF8;
+      --holo-amber: #F59E0B;
+
+      /* 文字色彩 */
+      --text-pure-white: #FFFFFF;
+      --text-silver: #E2E8F0;
+      --text-cyan: #00F0FF;
+      --text-blue: #93C5FD;
+      --text-muted: #64748B;
+
+      /* 深色科技毛玻璃与发光边框 */
+      --glass-dark-bg: rgba(11, 17, 32, 0.68);
+      --glass-dark-hover: rgba(15, 23, 42, 0.82);
+      --glass-border-neon: 1px solid rgba(0, 240, 255, 0.45);
+      --glass-blur: blur(20px);
+      --glass-shadow: 0 16px 40px rgba(0, 0, 0, 0.75), 0 0 30px rgba(0, 240, 255, 0.15), inset 0 1px 2px rgba(255, 255, 255, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+      color: var(--text-pure-white);
+      background-color: var(--space-dark);
+      position: relative;
+    }
+
+    /* =========================================================
+       2. 动态背景嵌入层与深空星云遮罩
+       ========================================================= */
+    /* 用户提供的动态背景嵌入区域 (可随时替换或嵌入星空代码) */
+    .dynamic-bg-container {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: -2;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    /* 深空滤镜遮罩：赋予宇宙神秘深沉感，衬托前景全息发光字 */
+    .cosmic-nebula-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background: radial-gradient(circle at 50% 48%, rgba(7, 11, 24, 0.65) 0%, rgba(5, 8, 20, 0.82) 65%, rgba(2, 4, 10, 0.94) 100%);
+      pointer-events: none;
+    }
+
+    /* 科技感网格与微细发光星子 */
+    .cosmic-grid-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background-image: 
+        linear-gradient(rgba(0, 240, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 240, 255, 0.035) 1px, transparent 1px);
+      background-size: 80px 80px;
+      pointer-events: none;
+    }
+
+    /* 核心全息环境呼吸光晕 (页面中央慢速呼吸膨胀) */
+    .ambient-halo-orb {
+      position: absolute;
+      top: 48%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 900px;
+      height: 520px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0, 240, 255, 0.16) 0%, rgba(56, 189, 248, 0.08) 45%, rgba(129, 140, 248, 0.03) 70%, transparent 100%);
+      filter: blur(60px);
+      pointer-events: none;
+      z-index: 0;
+      animation: cosmicPulse 7s ease-in-out infinite alternate;
+    }
+    @keyframes cosmicPulse {
+      0% {
+        transform: translate(-50%, -50%) scale(0.85);
+        opacity: 0.55;
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1.15);
+        opacity: 0.95;
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(0.95);
+        opacity: 0.65;
+      }
+    }
+
+    /* =========================================================
+       3. 页面主自适应容器 (16:9 / 1920x1080 绝对居中)
+       ========================================================= */
+    .presentation-container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24px 56px 20px;
+      max-width: 1840px;
+      margin: 0 auto;
+    }
+
+    /* 顶部导航与标签 */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      flex-shrink: 0;
+    }
+
+    .top-back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 22px;
+      background: var(--glass-dark-bg);
+      border: var(--glass-border-neon);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 999px;
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--holo-cyan);
+      text-decoration: none;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), 0 0 15px rgba(0, 240, 255, 0.2);
+      transition: all 0.25s ease;
+      cursor: pointer;
+    }
+    .top-back-btn:hover {
+      background: rgba(0, 240, 255, 0.18);
+      border-color: #00F0FF;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(0, 240, 255, 0.45);
+    }
+
+    .chapter-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 22px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 999px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--holo-blue);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+      letter-spacing: 0.8px;
+    }
+    .pulse-dot-cyan {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--holo-cyan);
+      box-shadow: 0 0 10px var(--holo-cyan);
+      animation: pulseCyan 1.8s infinite;
+    }
+    @keyframes pulseCyan {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.4); opacity: 1; }
+    }
+
+    .page-indicator-top {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text-muted);
+      background: var(--glass-dark-bg);
+      padding: 8px 22px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: var(--glass-blur);
+    }
+
+    /* =========================================================
+       4. 居中排版：绝对的视觉焦点 (从宇宙深处浮现)
+       ========================================================= */
+    .hero-center-focus {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      position: relative;
+      padding: 20px 0;
+    }
+
+    /* 顶部小标签：PART 02 · 工程与制造 */
+    .part-tag-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 26px;
+      background: rgba(0, 240, 255, 0.12);
+      border: 1.5px solid rgba(0, 240, 255, 0.55);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 999px;
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--holo-cyan);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      box-shadow: 0 0 24px rgba(0, 240, 255, 0.35), inset 0 0 12px rgba(0, 240, 255, 0.2);
+      margin-bottom: 24px;
+      opacity: 0;
+      animation: tagFadeIn 0.8s 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes tagFadeIn {
+      0% { opacity: 0; transform: translateY(-20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 主标题：棉花糖机 3D 模型组装 (从宇宙深处浮现 + 全息光芒) */
+    .main-title-container {
+      position: relative;
+      margin: 6px 0 16px 0;
+    }
+
+    .main-hero-title {
+      font-size: 78px;
+      font-weight: 900;
+      letter-spacing: 6px;
+      line-height: 1.18;
+      color: #FFFFFF;
+      text-transform: uppercase;
+      display: block;
+      /* 宇宙深处浮现动画 */
+      opacity: 0;
+      animation: spaceEmerge 1.3s 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      text-shadow: 
+        0 0 25px rgba(0, 240, 255, 0.8),
+        0 0 60px rgba(0, 240, 255, 0.45),
+        0 0 100px rgba(56, 189, 248, 0.3),
+        0 4px 12px rgba(0, 0, 0, 0.9);
+    }
+
+    /* 渐变全息高光文字 */
+    .title-highlight-cyan {
+      background: linear-gradient(135deg, #FFFFFF 0%, #00F0FF 55%, #38BDF8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: inline-block;
+      filter: drop-shadow(0 0 35px rgba(0, 240, 255, 0.7));
+    }
+
+    @keyframes spaceEmerge {
+      0% {
+        opacity: 0;
+        transform: scale(0.72) translateY(50px);
+        filter: blur(24px);
+        letter-spacing: 16px;
+      }
+      60% {
+        opacity: 0.9;
+        filter: blur(4px);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+        filter: blur(0);
+        letter-spacing: 6px;
+      }
+    }
+
+    /* 科幻光束分割线 */
+    .sci-fi-divider {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      max-width: 720px;
+      margin: 12px auto 20px auto;
+      gap: 14px;
+      opacity: 0;
+      animation: dividerExpand 1s 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .divider-line {
+      flex: 1;
+      height: 1.5px;
+      background: linear-gradient(90deg, transparent 0%, rgba(0, 240, 255, 0.8) 50%, transparent 100%);
+      box-shadow: 0 0 8px rgba(0, 240, 255, 0.6);
+    }
+    .divider-diamond {
+      width: 8px;
+      height: 8px;
+      transform: rotate(45deg);
+      background: var(--holo-cyan);
+      box-shadow: 0 0 12px var(--holo-cyan);
+    }
+    @keyframes dividerExpand {
+      0% { opacity: 0; transform: scaleX(0.4); }
+      100% { opacity: 1; transform: scaleX(1); }
+    }
+
+    /* 副标题：从零散部件到一台完整的机器 */
+    .sub-hero-title {
+      font-size: 28px;
+      font-weight: 500;
+      color: var(--text-blue);
+      letter-spacing: 4px;
+      margin-bottom: 40px;
+      text-shadow: 0 0 16px rgba(56, 189, 248, 0.45);
+      opacity: 0;
+      animation: subtitleSlideUp 0.9s 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes subtitleSlideUp {
+      0% { opacity: 0; transform: translateY(24px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    /* =========================================================
+       5. 偏下方：全息投影名片 (主讲人：覃耀明)
+       ========================================================= */
+    .hologram-speaker-card {
+      position: relative;
+      background: var(--glass-dark-bg);
+      border: var(--glass-border-neon);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 18px;
+      padding: 18px 36px;
+      display: inline-flex;
+      align-items: center;
+      gap: 20px;
+      box-shadow: var(--glass-shadow);
+      overflow: hidden;
+      cursor: default;
+      /* 标题后 0.5 秒淡入，伴随科技感闪烁 (0.35 + 0.5 = 0.85s) */
+      opacity: 0;
+      animation: holoFlickerFadeIn 1.1s 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      transition: all 0.3s ease;
+    }
+    .hologram-speaker-card:hover {
+      background: var(--glass-dark-hover);
+      border-color: #00F0FF;
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 20px 48px rgba(0, 0, 0, 0.8), 0 0 35px rgba(0, 240, 255, 0.45);
+    }
+
+    /* 全息名片科幻角标 */
+    .holo-corner {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border: 2px solid var(--holo-cyan);
+      pointer-events: none;
+    }
+    .corner-tl { top: 6px; left: 6px; border-right: none; border-bottom: none; }
+    .corner-tr { top: 6px; right: 6px; border-left: none; border-bottom: none; }
+    .corner-bl { bottom: 6px; left: 6px; border-right: none; border-top: none; }
+    .corner-br { bottom: 6px; right: 6px; border-left: none; border-top: none; }
+
+    /* 全息光扫刷动画 */
+    .holo-card-scanner {
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 60%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.25), transparent);
+      transform: skewX(-20deg);
+      pointer-events: none;
+      animation: holoScanSweep 4.5s ease-in-out infinite;
+    }
+    @keyframes holoScanSweep {
+      0%, 35% { left: -100%; }
+      65%, 100% { left: 200%; }
+    }
+
+    @keyframes holoFlickerFadeIn {
+      0% { opacity: 0; transform: translateY(20px) scale(0.96); }
+      20% { opacity: 0.85; }
+      30% { opacity: 0.25; }
+      50% { opacity: 0.95; }
+      65% { opacity: 0.65; }
+      80% { opacity: 1; }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .speaker-icon-shield {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: rgba(0, 240, 255, 0.15);
+      border: 1.5px solid rgba(0, 240, 255, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.35);
+      flex-shrink: 0;
+    }
+
+    .speaker-info-col {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      text-align: left;
+    }
+
+    .speaker-role-tag {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--holo-blue);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .speaker-name-row {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-top: 3px;
+    }
+
+    .speaker-name-text {
+      font-size: 30px;
+      font-weight: 900;
+      color: #FFFFFF;
+      letter-spacing: 2px;
+      text-shadow: 0 0 18px rgba(0, 240, 255, 0.5), 0 2px 4px rgba(0, 0, 0, 0.8);
+    }
+
+    .speaker-affil-pill {
+      font-size: 13px;
+      font-weight: 700;
+      padding: 3px 12px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.18);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      color: var(--holo-cyan);
+    }
+
+    /* =========================================================
+       6. 统一深色科技风页脚导航栏 (上一页 / 下一页 / 8 / 12)
+       ========================================================= */
+    .footer-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      padding-top: 14px;
+      flex-shrink: 0;
+      border-top: 1px solid rgba(0, 240, 255, 0.15);
+    }
+
+    .nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 26px;
+      background: var(--glass-dark-bg);
+      border: var(--glass-border-neon);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 999px;
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--holo-cyan);
+      text-decoration: none;
+      box-shadow: var(--glass-shadow);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      cursor: pointer;
+    }
+    .nav-btn:hover {
+      background: rgba(0, 240, 255, 0.2);
+      border-color: #00F0FF;
+      transform: translateY(-2px);
+      box-shadow: 0 0 24px rgba(0, 240, 255, 0.45);
+    }
+
+    .nav-btn.btn-primary {
+      background: linear-gradient(135deg, #00F0FF 0%, #0284C7 100%);
+      color: #030712;
+      border: none;
+      box-shadow: 0 4px 22px rgba(0, 240, 255, 0.45);
+      letter-spacing: 0.5px;
+    }
+    .nav-btn.btn-primary:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 8px 32px rgba(0, 240, 255, 0.7);
+      background: linear-gradient(135deg, #38BDF8 0%, #0369A1 100%);
+    }
+
+    .nav-center-hint {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(0, 240, 255, 0.25);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      padding: 7px 24px;
+      border-radius: 999px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-blue);
+    }
+
+    .kbd-shortcut-pill {
+      display: inline-block;
+      padding: 2px 9px;
+      background: rgba(0, 240, 255, 0.15);
+      border: 1px solid rgba(0, 240, 255, 0.5);
+      border-radius: 5px;
+      font-size: 13.5px;
+      font-family: monospace;
+      color: var(--holo-cyan);
+    }
+
+    .page-indicator-bottom {
+      font-size: 18px;
+      font-weight: 900;
+      color: #FFFFFF;
+      background: var(--glass-dark-bg);
+      border: 1px solid rgba(0, 240, 255, 0.35);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      padding: 10px 26px;
+      border-radius: 999px;
+      box-shadow: var(--glass-shadow);
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- =========================================================
+       动态页面背景层 (按用户指令嵌入 index.html，可随时替换宇宙背景)
+       ========================================================= -->
+  <div class="dynamic-bg-container">
+    <iframe 
+      src="index.html" 
+      style="position: fixed; inset: 0; width: 100vw; height: 100vh; border: none; z-index: -1; pointer-events: none;"
+      allow="autoplay"
+      aria-hidden="true">
+    </iframe>
+  </div>
+
+  <!-- 深空科技与宇宙星云遮罩 (确保前景全息发光字清晰震撼) -->
+  <div class="cosmic-nebula-overlay"></div>
+  <div class="cosmic-grid-overlay"></div>
+
+  <!-- 中央全息环境呼吸光晕 -->
+  <div class="ambient-halo-orb"></div>
+
+  <!-- =========================================================
+       页面主内容区 (1920x1080 宽屏适配)
+       ========================================================= -->
+  <div class="presentation-container">
+
+    <!-- 顶部状态栏 -->
+    <div class="top-bar">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <a href="page7.html" class="top-back-btn" title="返回第 7 页：离心力 3D 模拟实验">
+          <span style="font-size: 19px; font-weight: 900;">←</span>
+          <span>上一页 (物理模拟实验)</span>
+        </a>
+        <div class="chapter-status-pill">
+          <span class="pulse-dot-cyan"></span>
+          <span>棉花糖的秘密 · 第二大章节过渡页</span>
+        </div>
+      </div>
+
+      <div class="page-indicator-top">第 8 页 / 章节总标题</div>
+    </div>
+
+    <!-- 核心视觉焦点区 (居中排版 + 从宇宙深处浮现 + 全息名片) -->
+    <div class="hero-center-focus">
+
+      <!-- 顶部小标签：PART 02 · 工程与制造 -->
+      <div class="part-tag-badge">
+        <span>PART 02 · 工程与制造</span>
+      </div>
+
+      <!-- 主标题：棉花糖机 3D 模型组装 (超大字号 78px，带全息发光) -->
+      <div class="main-title-container">
+        <h1 class="main-hero-title">
+          <span>棉花糖机 </span><span class="title-highlight-cyan">3D 模型组装</span>
+        </h1>
+      </div>
+
+      <!-- 科幻光束分割线 -->
+      <div class="sci-fi-divider">
+        <div class="divider-line"></div>
+        <div class="divider-diamond"></div>
+        <div class="divider-line"></div>
+      </div>
+
+      <!-- 副标题：从零散部件到一台完整的机器 -->
+      <p class="sub-hero-title">从零散部件到一台完整的机器</p>
+
+      <!-- 偏下方：主讲人信息全息名片 (覃耀明 · 标题出现后 0.5 秒带科技感闪烁淡入) -->
+      <div class="hologram-speaker-card">
+        <div class="holo-corner corner-tl"></div>
+        <div class="holo-corner corner-tr"></div>
+        <div class="holo-corner corner-bl"></div>
+        <div class="holo-corner corner-br"></div>
+        <div class="holo-card-scanner"></div>
+
+        <div class="speaker-icon-shield">
+          <span>👨‍🏫</span>
+        </div>
+
+        <div class="speaker-info-col">
+          <span class="speaker-role-tag">COURSE LECTURER · 课程主讲</span>
+          <div class="speaker-name-row">
+            <span class="speaker-name-text">主讲人：覃耀明</span>
+            <span class="speaker-affil-pill">装置结构与制造</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 统一深色科技风页脚导航栏 -->
+    <div class="footer-bar">
+      <a href="page7.html" class="nav-btn" title="返回第 7 页：离心力 3D 模拟实验">
+        <span>←</span>
+        <span>上一页 (物理模拟)</span>
+      </a>
+
+      <div class="nav-center-hint">
+        <span>💡 准备进入第二阶段：按 <span class="kbd-shortcut-pill">Space</span> 或点击右下角进入【3D 拼装实验】</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 18px;">
+        <a href="page9.html" class="nav-btn btn-primary" id="btnNextPage">
+          <span>进入下一页：3D 拼装实验</span>
+          <span>→</span>
+        </a>
+        <div class="page-indicator-bottom">8 / 12</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // =========================================================
+    // 键盘快捷键导航绑定
+    // =========================================================
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.key === ' ' || e.key === 'ArrowRight' || e.code === 'Enter') {
+        e.preventDefault();
+        window.location.href = 'page9.html';
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        window.location.href = 'page7.html';
+      }
+    });
+  </script>
+</body>
+</html>

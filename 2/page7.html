@@ -1,0 +1,1781 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>棉花糖的秘密 - 物理模拟：转盘离心力实验（第 7 页）</title>
+  <style>
+    /* =========================================================
+       1. 全局设计规范 (1920x1080 宽屏舒展 & 极度通透毛玻璃风格)
+       ========================================================= */
+    :root {
+      /* 核心水彩主色：奶油白、浅天蓝、马卡龙粉、鹅黄 */
+      --color-cream: #FFF9F0;
+      --color-sky-blue: #E6F2FF;
+      --color-macaron-pink: #FFD6E0;
+      --color-goose-yellow: #FFF3C4;
+
+      /* 文字色彩规范 */
+      --text-deep: #2A2423;
+      --text-main: #3F3736;
+      --text-muted: #6B6261;
+      --text-light: #8E8483;
+
+      /* 统一极度通透毛玻璃规范 (透明度 0.35, 模糊 20px, 边框 0.6) */
+      --glass-card-bg: rgba(255, 255, 255, 0.35);
+      --glass-card-hover: rgba(255, 255, 255, 0.48);
+      --glass-sub-bg: rgba(255, 255, 255, 0.28);
+      --glass-border: 1px solid rgba(255, 255, 255, 0.60);
+      --glass-border-strong: 1.6px solid rgba(255, 255, 255, 0.75);
+      --glass-blur: blur(20px);
+      --glass-shadow: 0 12px 36px rgba(160, 130, 140, 0.09), inset 0 1px 2px rgba(255, 255, 255, 0.95);
+      --glass-shadow-hover: 0 18px 48px rgba(255, 140, 160, 0.18), inset 0 1px 2px rgba(255, 255, 255, 0.98);
+
+      /* 文字抗白立体微光阴影 */
+      --text-glow-shadow: 0 1px 2px rgba(255, 255, 255, 0.85);
+
+      /* 物理功能概念色 */
+      --accent-force-red: #EF4444;   /* 向心力 / 静摩擦力专属红 */
+      --accent-vel-green: #10B981;   /* 线速度专属绿 */
+      --accent-radius-gold: #F59E0B; /* 半径专属金黄 */
+      --accent-omega-purple: #8B5CF6;/* 转速专属紫 */
+
+      /* 主题渐变 */
+      --btn-grad-pink: linear-gradient(135deg, #FFA8BA 0%, #FF6080 100%);
+      --btn-grad-blue: linear-gradient(135deg, #74B9FF 0%, #2563EB 100%);
+      --btn-grad-amber: linear-gradient(135deg, #FBBF24 0%, #D97706 100%);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", "Segoe UI", sans-serif;
+      color: var(--text-main);
+      position: relative;
+      background-color: #F8F4EE;
+    }
+
+    /* =========================================================
+       2. 水彩糖果背景层与柔和粒子系统
+       ========================================================= */
+    .bg-watercolor-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background-image: url('assets/watercolor-bg.jpg');
+      background-repeat: no-repeat;
+      background-position: center center;
+      background-size: cover;
+      pointer-events: none;
+    }
+
+    /* 极轻微遮罩，确保底层梦幻水彩云朵完全透过毛玻璃 */
+    .bg-soft-mask {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background: radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.04) 0%, rgba(255, 250, 246, 0.08) 70%, rgba(255, 240, 245, 0.14) 100%);
+      pointer-events: none;
+    }
+
+    .candy-particles {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .particle {
+      position: absolute;
+      border-radius: 999px;
+      opacity: 0.70;
+      animation: floatGentle 9s ease-in-out infinite alternate;
+    }
+    .p-1 { width: 18px; height: 8px; background: #FFB3C6; top: 10%; left: 6%; transform: rotate(25deg); animation-delay: 0s; }
+    .p-2 { width: 15px; height: 7px; background: #BDE0FE; top: 18%; right: 8%; transform: rotate(-30deg); animation-delay: -2s; }
+    .p-3 { width: 20px; height: 8px; background: #FFE6A7; top: 82%; left: 8%; transform: rotate(45deg); animation-delay: -4s; }
+    .p-4 { width: 10px; height: 10px; background: #FFF; border-radius: 50%; box-shadow: 0 0 12px #FFF; top: 14%; right: 22%; animation-delay: -1s; }
+    .p-5 { width: 8px; height: 8px; background: #FFF; border-radius: 50%; box-shadow: 0 0 10px #FFF; top: 66%; right: 14%; animation-delay: -3s; }
+
+    @keyframes floatGentle {
+      0% { transform: translateY(0) rotate(0deg); opacity: 0.55; }
+      100% { transform: translateY(-14px) rotate(10deg); opacity: 0.85; }
+    }
+
+    /* =========================================================
+       3. 页面主自适应容器 (16:9 宽屏舒展排版)
+       ========================================================= */
+    .presentation-container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 14px 44px 12px;
+      max-width: 1840px;
+      margin: 0 auto;
+    }
+
+    /* 顶部导航与标签 (字号 >= 18px) */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      flex-shrink: 0;
+    }
+
+    .top-nav-back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 20px;
+      background: var(--glass-card-bg);
+      border: 1.6px solid rgba(255, 180, 200, 0.85);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 999px;
+      font-size: 18px;
+      font-weight: 800;
+      color: #E91E63;
+      text-decoration: none;
+      box-shadow: 0 4px 14px rgba(233, 30, 99, 0.12);
+      transition: all 0.25s ease;
+      cursor: pointer;
+    }
+    .top-nav-back-btn:hover {
+      background: rgba(255, 255, 255, 0.65);
+      color: #C2185B;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(233, 30, 99, 0.25);
+    }
+
+    .tag-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 22px;
+      background: var(--glass-card-bg);
+      border: var(--glass-border);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 999px;
+      font-size: 18px;
+      font-weight: 700;
+      color: #6D28D9;
+      box-shadow: 0 4px 14px rgba(109, 40, 217, 0.08);
+      text-shadow: var(--text-glow-shadow);
+    }
+    .tag-badge .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #8B5CF6;
+      box-shadow: 0 0 8px #8B5CF6;
+    }
+
+    .top-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .quick-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 18px;
+      background: var(--glass-card-bg);
+      border: var(--glass-border);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 999px;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+      cursor: pointer;
+      box-shadow: var(--glass-shadow);
+      transition: all 0.25s ease;
+    }
+    .quick-action-btn:hover {
+      background: rgba(255, 255, 255, 0.6);
+      transform: translateY(-2px);
+      color: #E91E63;
+      border-color: rgba(255, 180, 200, 0.9);
+    }
+
+    .page-indicator-top {
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--text-muted);
+      background: var(--glass-card-bg);
+      padding: 6px 20px;
+      border-radius: 999px;
+      border: var(--glass-border);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      box-shadow: var(--glass-shadow);
+      text-shadow: var(--text-glow-shadow);
+    }
+
+    /* =========================================================
+       4. 顶部标题区 (主标题 52px，气派舒展)
+       ========================================================= */
+    .hero-section {
+      text-align: center;
+      margin: 4px 0 10px 0;
+      flex-shrink: 0;
+    }
+
+    .main-title {
+      font-size: 50px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      line-height: 1.15;
+      color: var(--text-deep);
+      text-shadow: 0 2px 4px rgba(255, 255, 255, 0.9), 0 4px 16px rgba(180, 130, 150, 0.12);
+      display: inline-flex;
+      align-items: center;
+      gap: 16px;
+      justify-content: center;
+    }
+
+    .sparkle-icon {
+      width: 30px;
+      height: 30px;
+      color: #FF708F;
+      animation: spinGentle 12s linear infinite;
+    }
+    @keyframes spinGentle {
+      0% { transform: rotate(0deg) scale(1); }
+      50% { transform: rotate(180deg) scale(1.1); }
+      100% { transform: rotate(360deg) scale(1); }
+    }
+
+    .subtitle {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-top: 4px;
+      text-shadow: var(--text-glow-shadow);
+    }
+
+    /* =========================================================
+       5. 主体左右分栏布局 (利用 1920x1080 宽屏，左 61% : 右 39%)
+       ========================================================= */
+    .main-sim-layout {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1.55fr 1fr;
+      gap: 22px;
+      width: 100%;
+      min-height: 0;
+      margin-bottom: 8px;
+    }
+
+    /* =========================================================
+       6. 左侧：超大 3D 转盘物理视口 (主要视觉焦点)
+       ========================================================= */
+    .sim-left-viewport-card {
+      background: var(--glass-card-bg);
+      border: var(--glass-border);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 24px;
+      box-shadow: var(--glass-shadow);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+      padding: 18px 22px 14px;
+    }
+
+    .viewport-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-shrink: 0;
+    }
+
+    .viewport-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 21px;
+      font-weight: 800;
+      color: var(--text-deep);
+      text-shadow: var(--text-glow-shadow);
+    }
+
+    /* 物理状态动态徽章 */
+    .sim-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 18px;
+      border-radius: 999px;
+      font-size: 16px;
+      font-weight: 800;
+      background: rgba(220, 252, 231, 0.85);
+      border: 1.5px solid rgba(74, 222, 128, 0.75);
+      color: #15803D;
+      box-shadow: 0 2px 10px rgba(34, 197, 94, 0.15);
+      transition: all 0.3s ease;
+    }
+    .sim-status-badge.critical {
+      background: rgba(254, 243, 199, 0.9);
+      border-color: rgba(251, 191, 36, 0.85);
+      color: #B45309;
+      box-shadow: 0 2px 12px rgba(245, 158, 11, 0.25);
+    }
+    .sim-status-badge.broken {
+      background: rgba(254, 226, 226, 0.9);
+      border-color: rgba(248, 113, 113, 0.85);
+      color: #B91C1C;
+      box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3);
+      animation: pulseAlert 1.2s ease-in-out infinite;
+    }
+    @keyframes pulseAlert {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.04); }
+    }
+
+    .status-dot-pulse {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 8px currentColor;
+    }
+
+    /* Canvas 画布容器 (自适应拉伸铺满) */
+    .canvas-container-wrap {
+      flex: 1;
+      position: relative;
+      width: 100%;
+      min-height: 0;
+      background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.42) 0%, rgba(245, 248, 255, 0.22) 100%);
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      overflow: hidden;
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.02);
+    }
+
+    #physicsCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* 悬浮力学矢量图例 */
+    .canvas-legend-dock {
+      position: absolute;
+      left: 18px;
+      bottom: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      background: rgba(255, 255, 255, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-radius: 14px;
+      padding: 8px 18px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+      pointer-events: none;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      text-shadow: var(--text-glow-shadow);
+    }
+    .legend-line-red {
+      width: 22px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--accent-force-red);
+      box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
+    }
+    .legend-line-green {
+      width: 22px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--accent-vel-green);
+      box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+    }
+    .legend-line-gold {
+      width: 22px;
+      height: 3px;
+      border-radius: 2px;
+      border-top: 3px dashed var(--accent-radius-gold);
+    }
+
+    /* 离心脱轨警告飘窗 */
+    .centrifugal-toast {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: rgba(255, 241, 242, 0.95);
+      border: 1.8px solid rgba(244, 63, 94, 0.85);
+      backdrop-filter: blur(16px);
+      padding: 10px 24px;
+      border-radius: 999px;
+      font-size: 17px;
+      font-weight: 800;
+      color: #9F1239;
+      box-shadow: 0 8px 24px rgba(244, 63, 94, 0.25);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 10;
+    }
+    .centrifugal-toast.active {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* =========================================================
+       7. 右侧：参数控制与数据遥测面板 (整齐排列)
+       ========================================================= */
+    .sim-right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      min-height: 0;
+      justify-content: space-between;
+    }
+
+    /* 4 项物理遥测指标 (2x2 网格) */
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .telemetry-card {
+      background: var(--glass-card-bg);
+      border: var(--glass-border);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 18px;
+      padding: 12px 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: var(--glass-shadow);
+      transition: all 0.25s ease;
+    }
+    .telemetry-card:hover {
+      background: var(--glass-card-hover);
+      border-color: rgba(255, 255, 255, 0.85);
+      transform: translateY(-2px);
+    }
+
+    .telemetry-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .telemetry-label {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-shadow: var(--text-glow-shadow);
+    }
+
+    .telemetry-badge {
+      font-size: 13px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+    }
+
+    .telemetry-value-row {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .telemetry-number {
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 32px;
+      font-weight: 900;
+      color: var(--text-deep);
+      letter-spacing: -0.5px;
+      line-height: 1;
+    }
+    .telemetry-unit {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    /* 动态公式展示条 */
+    .formula-bar-card {
+      background: var(--glass-card-bg);
+      border: var(--glass-border);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 18px;
+      padding: 12px 20px;
+      box-shadow: var(--glass-shadow);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .formula-bar-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .formula-bar-tag {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--text-muted);
+    }
+
+    .formula-bar-math {
+      font-family: "Times New Roman", Georgia, serif;
+      font-size: 19px;
+      font-weight: 700;
+      color: var(--text-deep);
+      text-shadow: var(--text-glow-shadow);
+    }
+    .formula-bar-math i {
+      font-style: italic;
+    }
+
+    .crit-calc-highlight {
+      color: #BE123C !important;
+      font-size: 20px;
+      font-weight: 900;
+    }
+
+    /* 4 项物理参数控制面板 (Sliders Dock) */
+    .controls-dock-card {
+      background: var(--glass-card-bg);
+      border: var(--glass-border);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 22px;
+      padding: 16px 22px;
+      box-shadow: var(--glass-shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .sliders-2x2-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px 18px;
+    }
+
+    .slider-item-block {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .slider-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .slider-name-tag {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text-deep);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      text-shadow: var(--text-glow-shadow);
+    }
+
+    .slider-pill-badge {
+      font-size: 14px;
+      font-weight: 800;
+      padding: 2px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      color: #9D174D;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    /* 原生滑块美化 */
+    .custom-range-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(200, 180, 190, 0.35);
+      outline: none;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    .custom-range-slider:hover {
+      background: rgba(200, 180, 190, 0.5);
+    }
+    .custom-range-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #FFF;
+      border: 3px solid #FF6080;
+      box-shadow: 0 2px 8px rgba(255, 96, 128, 0.4);
+      cursor: grab;
+      transition: all 0.15s ease;
+    }
+    .custom-range-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      border-color: #E11D48;
+    }
+
+    /* 快捷操作按钮组 */
+    .quick-preset-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 2px;
+    }
+
+    .preset-btn {
+      flex: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 12px;
+      background: rgba(255, 255, 255, 0.5);
+      border: 1.4px solid rgba(255, 255, 255, 0.8);
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text-deep);
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      transition: all 0.2s ease;
+    }
+    .preset-btn:hover {
+      background: #FFF;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 14px rgba(233, 30, 99, 0.18);
+      color: #E91E63;
+    }
+    .preset-btn.crit-active {
+      background: linear-gradient(135deg, #FFF3C4 0%, #FDE68A 100%);
+      border-color: #F59E0B;
+      color: #B45309;
+      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25);
+    }
+
+    /* 物理探究小结贴士 */
+    .physics-tip-card {
+      background: var(--glass-card-bg);
+      border: var(--glass-border);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 18px;
+      padding: 12px 20px;
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.5;
+      color: var(--text-deep);
+      box-shadow: var(--glass-shadow);
+      text-shadow: var(--text-glow-shadow);
+    }
+    .physics-tip-card strong {
+      color: #9D174D;
+    }
+
+    /* =========================================================
+       8. 底部统一导航栏 (上一页 / 下一页 / 7 / 12)
+       ========================================================= */
+    .footer-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      padding-top: 6px;
+      flex-shrink: 0;
+    }
+
+    .nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 24px;
+      background: var(--glass-card-bg);
+      border: 1.6px solid rgba(255, 180, 200, 0.85);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 999px;
+      font-size: 18px;
+      font-weight: 800;
+      color: #E91E63;
+      text-decoration: none;
+      box-shadow: 0 4px 16px rgba(233, 30, 99, 0.12);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      cursor: pointer;
+    }
+    .nav-btn:hover {
+      background: rgba(255, 255, 255, 0.7);
+      color: #C2185B;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(233, 30, 99, 0.25);
+    }
+
+    .nav-btn.btn-primary {
+      background: var(--btn-grad-pink);
+      color: #FFF;
+      border: none;
+      box-shadow: 0 6px 20px rgba(255, 96, 128, 0.35);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+    .nav-btn.btn-primary:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 10px 28px rgba(255, 96, 128, 0.45);
+      background: linear-gradient(135deg, #FFA0B5 0%, #E84D70 100%);
+    }
+
+    .nav-center-hint {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--glass-card-bg);
+      border: var(--glass-border);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      padding: 6px 22px;
+      border-radius: 999px;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-shadow: var(--text-glow-shadow);
+    }
+    .kbd-pill {
+      display: inline-block;
+      padding: 1px 8px;
+      background: rgba(255, 255, 255, 0.75);
+      border: 1px solid rgba(255, 140, 160, 0.7);
+      border-radius: 5px;
+      font-size: 14px;
+      font-family: monospace;
+      color: #BE185D;
+    }
+
+    .page-indicator-bottom {
+      font-size: 18px;
+      font-weight: 900;
+      color: #4A4A4A;
+      background: var(--glass-card-bg);
+      border: var(--glass-border);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      padding: 9px 24px;
+      border-radius: 999px;
+      box-shadow: var(--glass-shadow);
+      text-shadow: var(--text-glow-shadow);
+    }
+
+    /* 浮动提示条 (Toast) */
+    .toast-tip {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(30px);
+      background: rgba(40, 30, 35, 0.9);
+      color: #FFF;
+      padding: 10px 24px;
+      border-radius: 999px;
+      font-size: 16px;
+      font-weight: 700;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s ease;
+      z-index: 1000;
+    }
+    .toast-tip.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. 背景水彩画与动态糖果粒子 -->
+  <div class="bg-watercolor-layer"></div>
+  <div class="bg-soft-mask"></div>
+  <div class="candy-particles">
+    <div class="particle p-1"></div>
+    <div class="particle p-2"></div>
+    <div class="particle p-3"></div>
+    <div class="particle p-4"></div>
+    <div class="particle p-5"></div>
+  </div>
+
+  <!-- 2. 主页面容器 (16:9 舒展自适应) -->
+  <div class="presentation-container">
+
+    <!-- 顶部状态栏 -->
+    <div class="top-bar">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <a href="page6.html" class="top-nav-back-btn" title="返回第 6 页：离心力理论推导">
+          <span style="font-size: 20px; font-weight: 900;">←</span>
+          <span>上一页 (理论推导)</span>
+        </a>
+        <div class="tag-badge">
+          <span class="dot"></span>
+          <span>第二部分 · 离心现象与向心力 (3D 交互实验)</span>
+        </div>
+      </div>
+
+      <div class="top-bar-right">
+        <button class="quick-action-btn" id="btnTopPresetCrit" title="快速设置至理论临界转速">
+          <span>⚡</span>
+          <span>临界平衡</span>
+        </button>
+        <button class="quick-action-btn" id="btnTopResetAll" title="一键重置所有参数与实验状态">
+          <span>🔄</span>
+          <span>全部重置</span>
+        </button>
+        <div class="page-indicator-top">第 7 页 / 物理交互实验篇</div>
+      </div>
+    </div>
+
+    <!-- 顶部标题区 -->
+    <div class="hero-section">
+      <h1 class="main-title">
+        <svg class="sparkle-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z"/>
+        </svg>
+        <span>物理模拟：转盘离心力实验</span>
+        <svg class="sparkle-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z"/>
+        </svg>
+      </h1>
+      <p class="subtitle">动手调节质量、半径、摩擦因数与转速，探究向心力、静摩擦力与切线飞出的临界规律。</p>
+    </div>
+
+    <!-- 主体左右分栏布局：左侧放大 3D 转盘视觉，右侧整齐控制与数据 -->
+    <div class="main-sim-layout">
+
+      <!-- ======================= 左侧：放大 3D 转盘物理视口 ======================= -->
+      <div class="sim-left-viewport-card">
+        <div class="viewport-header-row">
+          <div class="viewport-title-group">
+            <span>⚙️</span>
+            <span>转盘圆周运动受力与切线飞出动力学模拟</span>
+          </div>
+
+          <div class="sim-status-badge" id="simStatusBadge">
+            <span class="status-dot-pulse"></span>
+            <span id="simStatusText">稳定圆周运动中 (Fn ≤ fmax)</span>
+          </div>
+        </div>
+
+        <!-- Canvas 画布容器 -->
+        <div class="canvas-container-wrap" id="canvasViewport">
+          <canvas id="physicsCanvas"></canvas>
+
+          <!-- 悬浮物理矢量图例说明 -->
+          <div class="canvas-legend-dock">
+            <div class="legend-item" style="color: var(--accent-force-red);">
+              <span class="legend-line-red"></span>
+              <span>静摩擦力 f（指向圆心提供向心力 Fn）</span>
+            </div>
+            <div class="legend-item" style="color: var(--accent-vel-green);">
+              <span class="legend-line-green"></span>
+              <span>线速度 v（沿切线方向）</span>
+            </div>
+            <div class="legend-item" style="color: var(--accent-radius-gold);">
+              <span class="legend-line-gold"></span>
+              <span id="legendRadiusText">旋转半径 r = 0.20 m</span>
+            </div>
+          </div>
+
+          <!-- 离心脱离警告提示条 -->
+          <div class="centrifugal-toast" id="centrifugalToast">
+            <span style="font-size: 20px;">⚡</span>
+            <span>突破最大静摩擦力极限！离心现象发生，糖块沿切线飞出！</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======================= 右侧：数据面板与控制面板 ======================= -->
+      <div class="sim-right-col">
+
+        <!-- 1. 4 项核心物理数据仪表板 (2x2 网格) -->
+        <div class="telemetry-grid">
+          <!-- 所需向心力 -->
+          <div class="telemetry-card">
+            <div class="telemetry-header">
+              <span class="telemetry-label">所需向心力需求</span>
+              <span class="telemetry-badge" style="color: #DC2626;">Fn</span>
+            </div>
+            <div class="telemetry-value-row">
+              <span class="telemetry-number" id="valFn" style="color: #DC2626;">0.64</span>
+              <span class="telemetry-unit">N</span>
+            </div>
+          </div>
+
+          <!-- 最大静摩擦力 -->
+          <div class="telemetry-card">
+            <div class="telemetry-header">
+              <span class="telemetry-label">最大静摩擦力上限</span>
+              <span class="telemetry-badge" style="color: #B45309;">fmax</span>
+            </div>
+            <div class="telemetry-value-row">
+              <span class="telemetry-number" id="valFmax" style="color: #B45309;">0.98</span>
+              <span class="telemetry-unit">N</span>
+            </div>
+          </div>
+
+          <!-- 线速度 -->
+          <div class="telemetry-card">
+            <div class="telemetry-header">
+              <span class="telemetry-label">糖块瞬时线速度</span>
+              <span class="telemetry-badge" style="color: #059669;">v</span>
+            </div>
+            <div class="telemetry-value-row">
+              <span class="telemetry-number" id="valSpeed" style="color: #059669;">0.80</span>
+              <span class="telemetry-unit">m/s</span>
+            </div>
+          </div>
+
+          <!-- 角速度 -->
+          <div class="telemetry-card">
+            <div class="telemetry-header">
+              <span class="telemetry-label">当前转盘角速度</span>
+              <span class="telemetry-badge" style="color: #7C3AED;">ω</span>
+            </div>
+            <div class="telemetry-value-row">
+              <span class="telemetry-number" id="valOmega" style="color: #7C3AED;">4.0</span>
+              <span class="telemetry-unit">rad/s</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. 动态公式与实时临界平衡展示卡片 -->
+        <div class="formula-bar-card">
+          <div class="formula-bar-item">
+            <span class="formula-bar-tag">🎯 动力学需求公式</span>
+            <div class="formula-bar-math"><i>F</i><sub><i>n</i></sub> = <i>m·r·&omega;</i>²</div>
+          </div>
+          <div class="formula-bar-item">
+            <span class="formula-bar-tag">🛡️ 静摩擦力上限公式</span>
+            <div class="formula-bar-math"><i>f</i><sub>max</sub> = <i>&mu;·m·g</i></div>
+          </div>
+          <div class="formula-bar-item" style="text-align: right;">
+            <span class="formula-bar-tag" style="color: #9F1239;">⚡ 动态理论临界角速度</span>
+            <div class="formula-bar-math crit-calc-highlight">
+              <i>&omega;</i><sub style="font-style: normal; font-size: 0.75em;">临界</sub> <span id="dispCritVal">= 4.95 rad/s</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. 4 项物理参数控制面板 (Sliders Dock) -->
+        <div class="controls-dock-card">
+          <div class="sliders-2x2-grid">
+            <!-- 质量 m -->
+            <div class="slider-item-block">
+              <div class="slider-header-row">
+                <span class="slider-name-tag">⚖️ 质量 <i>m</i></span>
+                <span class="slider-pill-badge" id="badgeMass">0.2 kg</span>
+              </div>
+              <input type="range" class="custom-range-slider" id="massSlider" min="0.1" max="1.0" step="0.1" value="0.2">
+            </div>
+
+            <!-- 半径 r -->
+            <div class="slider-item-block">
+              <div class="slider-header-row">
+                <span class="slider-name-tag">📏 旋转半径 <i>r</i></span>
+                <span class="slider-pill-badge" id="badgeRadius">0.20 m</span>
+              </div>
+              <input type="range" class="custom-range-slider" id="radiusSlider" min="0.10" max="0.50" step="0.05" value="0.20">
+            </div>
+
+            <!-- 摩擦因数 mu -->
+            <div class="slider-item-block">
+              <div class="slider-header-row">
+                <span class="slider-name-tag">🧼 摩擦因数 <i>&mu;</i></span>
+                <span class="slider-pill-badge" id="badgeMu">0.50</span>
+              </div>
+              <input type="range" class="custom-range-slider" id="muSlider" min="0.1" max="0.8" step="0.1" value="0.50">
+            </div>
+
+            <!-- 角速度 omega -->
+            <div class="slider-item-block">
+              <div class="slider-header-row">
+                <span class="slider-name-tag">🌀 角速度 <i>&omega;</i></span>
+                <span class="slider-pill-badge" id="badgeOmega" style="color: #BE185D;">4.0 rad/s</span>
+              </div>
+              <input type="range" class="custom-range-slider" id="omegaSlider" min="0.0" max="10.0" step="0.1" value="4.0">
+            </div>
+          </div>
+
+          <!-- 快捷操作按钮组 -->
+          <div class="quick-preset-bar">
+            <button class="preset-btn" id="btnLowSpeed" title="低速稳定状态">
+              <span>🐢 低速平稳</span>
+            </button>
+            <button class="preset-btn" id="btnCritSpeed" title="直接到达临界状态">
+              <span id="btnCritText">🎯 临界平衡 (4.95 rad/s)</span>
+            </button>
+            <button class="preset-btn" id="btnHighSpeed" title="瞬间加速发生离心飞出">
+              <span>🚀 加速飞出</span>
+            </button>
+            <button class="preset-btn" id="btnResetBlock" title="将脱轨飞出的糖块归位">
+              <span>🔄 糖块归位</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 4. 物理定律探究小结贴士 -->
+        <div class="physics-tip-card">
+          💡 <strong>科学探究提示：</strong>
+          试着拖动滑块增大<strong>质量 <i>m</i></strong>，观察向心力 <i>F<sub>n</sub></i> 与静摩擦力 <i>f</i><sub>max</sub> 同步等比变化，但<strong>临界角速度 <i>&omega;</i><sub>临界</sub> 依然保持不变</strong>！这直观印证了公式中质量被约去的物理规律。
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- 底部统一导航栏 (上一页 / 下一页 / 7 / 12) -->
+    <div class="footer-bar">
+      <a href="page6.html" class="nav-btn" title="返回第 6 页：离心力理论推导">
+        <span>←</span>
+        <span>上一页 (理论推导)</span>
+      </a>
+
+      <div class="nav-center-hint">
+        <span>💡 课堂控制：拖动滑块体验向心力变化</span>
+        <span>|</span>
+        <span>按 <span class="kbd-pill">Space</span> 触发超速甩出</span>
+        <span>|</span>
+        <span>按 <span class="kbd-pill">R</span> 糖块归位</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <button class="nav-btn btn-primary" id="navNextBtn">
+          <span>进入第 8 页：认识马达</span>
+          <span>→</span>
+        </button>
+        <div class="page-indicator-bottom">7 / 12</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 轻提示 (Toast) -->
+  <div class="toast-tip" id="toastTip">提示信息</div>
+
+  <script>
+    // =========================================================
+    // // 物理参数调控与常数管理 (Physics Simulation Engine)
+    // =========================================================
+    const physics = {
+      m: 0.2,             // 糖块质量 m (0.1 ~ 1.0 kg)，默认 0.2 kg
+      r: 0.20,            // 半径 r (0.10 ~ 0.50 m)，默认 0.20 m
+      mu: 0.50,           // 摩擦系数 μ (0.1 ~ 0.8)，默认 0.50
+      g: 9.8,             // 重力加速度 g = 9.8 m/s²
+      omega: 4.0,         // 当前角速度 rad/s (0 ~ 10 rad/s)，默认 4.0 rad/s
+      angle: 0,           // 当前转盘旋转角度 rad
+      isDetached: false,  // 是否发生离心飞出
+      detachPos: { x: 0, y: 0 },
+      detachVel: { vx: 0, vy: 0 },
+      blockPos: { x: 0, y: 0 },
+      trail: [],          // 离心脱离后的轨迹点
+      sparks: []          // 甩飞瞬间火花粒子
+    };
+
+    // // 修复：临界飞出逻辑
+    // 严格依据高中物理公式实时计算关键物理量 (m 在临界计算中严格约去)
+    function calcPhysicsMetrics() {
+      const fmax = physics.mu * physics.m * physics.g;                     // 最大静摩擦力 fmax = μ·m·g
+      const omegaCrit = Math.sqrt((physics.mu * physics.g) / physics.r);   // 临界角速度 ω临界 = √(μ·g / r)
+      const v = physics.omega * physics.r;                                 // 线速度 v = ω·r
+      const fnReq = physics.m * physics.r * (physics.omega ** 2);          // 所需向心力 Fn = m·r·ω²
+      return { fmax, omegaCrit, v, fnReq };
+    }
+
+    // DOM 元素引用
+    const canvas = document.getElementById('physicsCanvas');
+    const ctx = canvas.getContext('2d');
+    const viewport = document.getElementById('canvasViewport');
+
+    // 多参数滑块与数值胶囊
+    const massSlider = document.getElementById('massSlider');
+    const radiusSlider = document.getElementById('radiusSlider');
+    const muSlider = document.getElementById('muSlider');
+    const omegaSlider = document.getElementById('omegaSlider');
+
+    const badgeMass = document.getElementById('badgeMass');
+    const badgeRadius = document.getElementById('badgeRadius');
+    const badgeMu = document.getElementById('badgeMu');
+    const badgeOmega = document.getElementById('badgeOmega');
+
+    // 遥测数据与动态公式展示
+    const valOmega = document.getElementById('valOmega');
+    const valSpeed = document.getElementById('valSpeed');
+    const valFn = document.getElementById('valFn');
+    const valFmax = document.getElementById('valFmax');
+    const dispCritVal = document.getElementById('dispCritVal');
+    const btnCritText = document.getElementById('btnCritText');
+    const legendRadiusText = document.getElementById('legendRadiusText');
+
+    const simStatusBadge = document.getElementById('simStatusBadge');
+    const simStatusText = document.getElementById('simStatusText');
+    const centrifugalToast = document.getElementById('centrifugalToast');
+
+    const btnLowSpeed = document.getElementById('btnLowSpeed');
+    const btnCritSpeed = document.getElementById('btnCritSpeed');
+    const btnHighSpeed = document.getElementById('btnHighSpeed');
+    const btnResetBlock = document.getElementById('btnResetBlock');
+
+    // Canvas 尺寸与透视转盘几何参数
+    let dpr = window.devicePixelRatio || 1;
+    let W = 0;
+    let H = 0;
+    let centerX = 0;
+    let centerY = 0;
+    let diskRadiusX = 0;
+    let diskRadiusY = 0;
+    let orbitRadiusX = 0;
+    let orbitRadiusY = 0;
+
+    // // 新增：物理参数调控 (轨道几何尺寸动态映射)
+    function updateOrbitGeometry() {
+      if (!diskRadiusX || !diskRadiusY) return;
+      // 半径 r 范围 0.10 ~ 0.50 m 映射到转盘透视椭圆 (0.30 ~ 0.86)
+      const rRatio = Math.max(0, Math.min(1, (physics.r - 0.10) / (0.50 - 0.10)));
+      orbitRadiusX = diskRadiusX * (0.30 + 0.56 * rRatio);
+      orbitRadiusY = diskRadiusY * (0.30 + 0.56 * rRatio);
+    }
+
+    function resizeCanvas() {
+      W = viewport.clientWidth;
+      H = viewport.clientHeight;
+      if (!W || !H) return;
+
+      canvas.width = Math.floor(W * dpr);
+      canvas.height = Math.floor(H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      centerX = W * 0.50;
+      centerY = H * 0.52;
+
+      // 放大转盘尺寸，充分利用左侧主要视口空间
+      diskRadiusX = Math.min(W * 0.44, H * 0.70);
+      diskRadiusY = diskRadiusX * 0.52; // 0.52 透视压缩比
+
+      updateOrbitGeometry();
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+
+    // =========================================================
+    // // 动态公式与遥测更新逻辑
+    // =========================================================
+    function updateUI() {
+      const { fmax, omegaCrit, v, fnReq } = calcPhysicsMetrics();
+
+      // 1. 更新滑块旁数值胶囊
+      badgeMass.textContent = `${physics.m.toFixed(1)} kg`;
+      badgeRadius.textContent = `${physics.r.toFixed(2)} m`;
+      badgeMu.textContent = physics.mu.toFixed(2);
+      badgeOmega.textContent = `${physics.omega.toFixed(1)} rad/s`;
+
+      // 2. 更新 4 项仪表盘数值
+      valOmega.textContent = physics.omega.toFixed(1);
+      valSpeed.textContent = v.toFixed(2);
+      valFn.textContent = fnReq.toFixed(2);
+      valFmax.textContent = fmax.toFixed(2);
+
+      // 3. 更新动态公式卡片上的临界值与按钮文本
+      if (dispCritVal) {
+        dispCritVal.textContent = `= ${omegaCrit.toFixed(2)} rad/s`;
+      }
+      if (btnCritText) {
+        btnCritText.textContent = `🎯 临界平衡 (${omegaCrit.toFixed(2)} rad/s)`;
+      }
+      btnCritSpeed.dataset.omega = omegaCrit.toFixed(2);
+      if (legendRadiusText) {
+        legendRadiusText.textContent = `旋转半径 r = ${physics.r.toFixed(2)} m`;
+      }
+
+      // 4. // 修复：临界飞出逻辑 (当且仅当 ω > ωCrit 时变红警报)
+      if (physics.isDetached || physics.omega > omegaCrit + 0.001) {
+        simStatusBadge.className = 'sim-status-badge broken';
+        simStatusText.textContent = `💥 离心飞出 (Fn > fmax 切线脱离)`;
+        centrifugalToast.classList.add('active');
+      } else if (Math.abs(physics.omega - omegaCrit) <= 0.08 || Math.abs(fnReq - fmax) <= 0.03) {
+        simStatusBadge.className = 'sim-status-badge critical';
+        simStatusText.textContent = `⚡ 临界平衡极限状态 (Fn ≈ fmax)`;
+        centrifugalToast.classList.remove('active');
+      } else {
+        simStatusBadge.className = 'sim-status-badge';
+        simStatusText.textContent = `● 稳定圆周运动中 (Fn ≤ fmax)`;
+        centrifugalToast.classList.remove('active');
+      }
+    }
+
+    // 参数设定函数
+    function setMass(newM) {
+      physics.m = Math.max(0.1, Math.min(1.0, Math.round(newM * 10) / 10));
+      massSlider.value = physics.m;
+      checkDetachmentCondition();
+      updateUI();
+    }
+
+    function setRadius(newR) {
+      physics.r = Math.max(0.10, Math.min(0.50, Math.round(newR * 100) / 100));
+      radiusSlider.value = physics.r;
+      updateOrbitGeometry();
+      checkDetachmentCondition();
+      updateUI();
+    }
+
+    function setMu(newMu) {
+      physics.mu = Math.max(0.1, Math.min(0.8, Math.round(newMu * 10) / 10));
+      muSlider.value = physics.mu;
+      checkDetachmentCondition();
+      updateUI();
+    }
+
+    function setOmega(newOmega) {
+      physics.omega = Math.max(0, Math.min(10.0, Math.round(newOmega * 10) / 10));
+      omegaSlider.value = physics.omega;
+      
+      const { omegaCrit } = calcPhysicsMetrics();
+      btnCritSpeed.classList.toggle('crit-active', Math.abs(physics.omega - omegaCrit) <= 0.08);
+
+      checkDetachmentCondition();
+      updateUI();
+    }
+
+    // // 修复：临界飞出逻辑
+    // 飞出判定必须绑定在当前角速度 ω > ω_critical (即 Fn > fmax) 上，绝不硬编码
+    function checkDetachmentCondition() {
+      const { fmax, fnReq, omegaCrit } = calcPhysicsMetrics();
+      if (!physics.isDetached) {
+        if (physics.omega > omegaCrit + 0.001 && fnReq > fmax + 0.001 && physics.omega > 0.05) {
+          triggerDetachment();
+        }
+      }
+    }
+
+    function resetBlock() {
+      physics.isDetached = false;
+      physics.trail = [];
+      physics.sparks = [];
+      centrifugalToast.classList.remove('active');
+      updateUI();
+    }
+
+    function triggerDetachment() {
+      if (physics.isDetached) return;
+      physics.isDetached = true;
+
+      // 记录脱离瞬间的位置与切线速度
+      const cosA = Math.cos(physics.angle);
+      const sinA = Math.sin(physics.angle);
+
+      physics.detachPos = {
+        x: centerX + orbitRadiusX * cosA,
+        y: centerY + orbitRadiusY * sinA
+      };
+      physics.blockPos = { ...physics.detachPos };
+
+      // 切线速度矢量：沿椭圆切线方向 (-sinA * orbitRadiusX, cosA * orbitRadiusY)
+      const tangentSpeedScale = (physics.omega * 0.85);
+      physics.detachVel = {
+        vx: -sinA * orbitRadiusX * tangentSpeedScale * 0.015,
+        vy: cosA * orbitRadiusY * tangentSpeedScale * 0.015
+      };
+
+      // 产生脱离爆破粒子
+      for (let i = 0; i < 32; i++) {
+        const pAng = Math.random() * Math.PI * 2;
+        const pSpd = 1.5 + Math.random() * 5.0;
+        physics.sparks.push({
+          x: physics.detachPos.x,
+          y: physics.detachPos.y,
+          vx: Math.cos(pAng) * pSpd,
+          vy: Math.sin(pAng) * pSpd,
+          life: 1.0,
+          decay: 0.02 + Math.random() * 0.03,
+          color: Math.random() > 0.5 ? '#FF708F' : '#F59E0B'
+        });
+      }
+
+      updateUI();
+      showToast('💥 突破最大静摩擦力极限！离心现象发生，糖块沿切线飞出！');
+    }
+
+    // 事件监听绑定
+    massSlider.addEventListener('input', (e) => setMass(parseFloat(e.target.value)));
+    radiusSlider.addEventListener('input', (e) => setRadius(parseFloat(e.target.value)));
+    muSlider.addEventListener('input', (e) => setMu(parseFloat(e.target.value)));
+    omegaSlider.addEventListener('input', (e) => setOmega(parseFloat(e.target.value)));
+
+    btnLowSpeed.addEventListener('click', () => {
+      const { omegaCrit } = calcPhysicsMetrics();
+      setOmega(Math.max(1.5, parseFloat((omegaCrit * 0.65).toFixed(1))));
+      resetBlock();
+    });
+
+    btnCritSpeed.addEventListener('click', () => {
+      const { omegaCrit } = calcPhysicsMetrics();
+      setOmega(parseFloat(omegaCrit.toFixed(2)));
+      resetBlock();
+      showToast(`⚖️ 已设置为临界平衡转速 (${omegaCrit.toFixed(2)} rad/s)`);
+    });
+
+    btnHighSpeed.addEventListener('click', () => {
+      const { omegaCrit } = calcPhysicsMetrics();
+      setOmega(Math.min(10.0, parseFloat((omegaCrit * 1.5).toFixed(1))));
+    });
+
+    btnResetBlock.addEventListener('click', resetBlock);
+
+    document.getElementById('btnTopResetAll').addEventListener('click', () => {
+      setMass(0.2);
+      setRadius(0.20);
+      setMu(0.50);
+      setOmega(4.0);
+      resetBlock();
+      showToast('🔄 已重置所有物理参数与实验状态！');
+    });
+
+    document.getElementById('btnTopPresetCrit').addEventListener('click', () => {
+      const { omegaCrit } = calcPhysicsMetrics();
+      setOmega(parseFloat(omegaCrit.toFixed(2)));
+      resetBlock();
+      showToast(`⚡ 已切换至临界平衡极限状态 (${omegaCrit.toFixed(2)} rad/s)`);
+    });
+
+    // 键盘快捷键监听
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault();
+        if (physics.isDetached) {
+          resetBlock();
+        } else {
+          setOmega(7.8);
+        }
+      } else if (e.code === 'KeyR' || e.key === 'r' || e.key === 'R') {
+        resetBlock();
+      } else if (e.key === 'ArrowLeft') {
+        window.location.href = 'page6.html';
+      } else if (e.key === 'ArrowRight') {
+        handleNextPage();
+      }
+    });
+
+    function handleNextPage() {
+      window.location.href = 'page8.html';
+    }
+
+    document.getElementById('navNextBtn').addEventListener('click', handleNextPage);
+
+    // =========================================================
+    // // 3D/透视圆盘渲染与 60FPS 物理动画循环 (Physics Engine)
+    // =========================================================
+    let lastTime = performance.now();
+
+    function renderLoop(now) {
+      requestAnimationFrame(renderLoop);
+      const dt = Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
+
+      // 1. 物理步进
+      const { fmax, fnReq, omegaCrit } = calcPhysicsMetrics();
+
+      if (!physics.isDetached) {
+        physics.angle += physics.omega * dt;
+        if (physics.omega > omegaCrit + 0.001 && fnReq > fmax + 0.001 && physics.omega > 0.05) {
+          triggerDetachment();
+        }
+      } else {
+        // 脱离圆周后匀速直线切线飞出
+        physics.blockPos.x += physics.detachVel.vx * (dt * 60);
+        physics.blockPos.y += physics.detachVel.vy * (dt * 60);
+
+        // 记录轨迹点
+        if (physics.trail.length === 0 || Math.hypot(physics.blockPos.x - physics.trail[physics.trail.length - 1].x, physics.blockPos.y - physics.trail[physics.trail.length - 1].y) > 6) {
+          physics.trail.push({ x: physics.blockPos.x, y: physics.blockPos.y });
+          if (physics.trail.length > 45) physics.trail.shift();
+        }
+
+        // 转盘依然持续旋转
+        physics.angle += physics.omega * dt;
+      }
+
+      // 更新粒子
+      for (let i = physics.sparks.length - 1; i >= 0; i--) {
+        const s = physics.sparks[i];
+        s.x += s.vx;
+        s.y += s.vy;
+        s.life -= s.decay;
+        if (s.life <= 0) physics.sparks.splice(i, 1);
+      }
+
+      // 2. 清空画布
+      ctx.clearRect(0, 0, W, H);
+
+      // 3. 绘制 3D 侧壁厚度金属质感透视转盘
+      drawTurntable();
+
+      // 4. 绘制轨道虚线与半径 (r)
+      drawOrbitAndRadius();
+
+      // 5. 绘制离心飞出轨迹与火花
+      if (physics.isDetached) {
+        drawTrailAndSparks();
+      }
+
+      // 6. 绘制糖块与受力速度矢量 (红色静摩擦向心力、绿色切线速度)
+      drawBlockAndVectors(fmax, fnReq);
+    }
+
+    // 绘制 3D 具有金属马卡龙质感的透视转盘
+    function drawTurntable() {
+      const diskDepth = 26; // 侧壁立体厚度
+
+      // A. 下层侧壁圆柱面
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(centerX, centerY + diskDepth, diskRadiusX, diskRadiusY, 0, 0, Math.PI);
+      ctx.lineTo(centerX - diskRadiusX, centerY);
+      ctx.ellipse(centerX, centerY, diskRadiusX, diskRadiusY, 0, Math.PI, 0, true);
+      ctx.closePath();
+
+      const sideGrad = ctx.createLinearGradient(centerX - diskRadiusX, centerY, centerX + diskRadiusX, centerY + diskDepth);
+      sideGrad.addColorStop(0, '#CBD5E1');
+      sideGrad.addColorStop(0.25, '#F1F5F9');
+      sideGrad.addColorStop(0.75, '#E2E8F0');
+      sideGrad.addColorStop(1, '#94A3B8');
+      ctx.fillStyle = sideGrad;
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = '#94A3B8';
+      ctx.stroke();
+      ctx.restore();
+
+      // B. 转盘顶面镜面质感
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(centerX, centerY, diskRadiusX, diskRadiusY, 0, 0, Math.PI * 2);
+      const topGrad = ctx.createRadialGradient(centerX, centerY - 20, 15, centerX, centerY, diskRadiusX);
+      topGrad.addColorStop(0, '#FFFFFF');
+      topGrad.addColorStop(0.55, '#F8FAFC');
+      topGrad.addColorStop(0.85, '#E2E8F0');
+      topGrad.addColorStop(1, '#CBD5E1');
+      ctx.fillStyle = topGrad;
+      ctx.fill();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.stroke();
+
+      // 外圈粉金高雅装饰环
+      ctx.lineWidth = 2.0;
+      ctx.strokeStyle = '#F472B6';
+      ctx.stroke();
+      ctx.restore();
+
+      // C. 动态旋转辐射刻度条
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(centerX, centerY, diskRadiusX, diskRadiusY, 0, 0, Math.PI * 2);
+      ctx.clip();
+
+      const tickCount = 18;
+      for (let i = 0; i < tickCount; i++) {
+        const curAngle = physics.angle + (i * (Math.PI * 2 / tickCount));
+        const cosT = Math.cos(curAngle);
+        const sinT = Math.sin(curAngle);
+
+        ctx.beginPath();
+        ctx.moveTo(centerX + cosT * (diskRadiusX * 0.18), centerY + sinT * (diskRadiusY * 0.18));
+        ctx.lineTo(centerX + cosT * (diskRadiusX * 0.94), centerY + sinT * (diskRadiusY * 0.94));
+        ctx.strokeStyle = (i % 3 === 0) ? 'rgba(233, 30, 99, 0.28)' : 'rgba(148, 163, 184, 0.22)';
+        ctx.lineWidth = (i % 3 === 0) ? 2.5 : 1.2;
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // D. 中心转轴立体轴心
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(centerX, centerY, diskRadiusX * 0.10, diskRadiusY * 0.10, 0, 0, Math.PI * 2);
+      const hubGrad = ctx.createLinearGradient(centerX - 15, centerY - 15, centerX + 15, centerY + 15);
+      hubGrad.addColorStop(0, '#FF80A0');
+      hubGrad.addColorStop(1, '#E11D48');
+      ctx.fillStyle = hubGrad;
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#FFF';
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(centerX, centerY - 2, 5, 0, Math.PI * 2);
+      ctx.fillStyle = '#FFF';
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // 绘制旋转轨道虚线与半径连线
+    function drawOrbitAndRadius() {
+      // 1. 旋转轨道椭圆虚线
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(centerX, centerY, orbitRadiusX, orbitRadiusY, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(236, 72, 153, 0.65)';
+      ctx.lineWidth = 2.2;
+      ctx.setLineDash([8, 6]);
+      ctx.stroke();
+      ctx.restore();
+
+      // 2. 当前旋转点位置
+      const cosA = Math.cos(physics.angle);
+      const sinA = Math.sin(physics.angle);
+      const orbitX = centerX + orbitRadiusX * cosA;
+      const orbitY = centerY + orbitRadiusY * sinA;
+
+      // 3. 半径金色连线 r
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.lineTo(orbitX, orbitY);
+      ctx.strokeStyle = 'rgba(245, 158, 11, 0.85)';
+      ctx.lineWidth = 2.0;
+      ctx.setLineDash([4, 4]);
+      ctx.stroke();
+
+      // 半径数值标签
+      const midRx = (centerX + orbitX) * 0.5;
+      const midRy = (centerY + orbitY) * 0.5 - 8;
+      ctx.font = 'bold 13px system-ui';
+      ctx.fillStyle = '#B45309';
+      ctx.textAlign = 'center';
+      ctx.fillText(`r = ${physics.r.toFixed(2)}m`, midRx, midRy);
+      ctx.restore();
+    }
+
+    // 绘制脱离轨迹与火花
+    function drawTrailAndSparks() {
+      // 轨迹拖尾线
+      if (physics.trail.length > 1) {
+        ctx.save();
+        for (let i = 1; i < physics.trail.length; i++) {
+          const p1 = physics.trail[i - 1];
+          const p2 = physics.trail[i];
+          const alpha = i / physics.trail.length;
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.strokeStyle = `rgba(239, 68, 68, ${alpha * 0.75})`;
+          ctx.lineWidth = 1.5 + alpha * 3.5;
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // 爆破火花粒子
+      ctx.save();
+      for (const s of physics.sparks) {
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, 2.5 * s.life, 0, Math.PI * 2);
+        ctx.fillStyle = s.color;
+        ctx.globalAlpha = Math.max(0, s.life);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // 绘制糖块与受力速度矢量箭头 (力学核心呈现)
+    function drawBlockAndVectors(fmax, fnReq) {
+      let bx, by;
+      if (!physics.isDetached) {
+        const cosA = Math.cos(physics.angle);
+        const sinA = Math.sin(physics.angle);
+        bx = centerX + orbitRadiusX * cosA;
+        by = centerY + orbitRadiusY * sinA;
+      } else {
+        bx = physics.blockPos.x;
+        by = physics.blockPos.y;
+      }
+
+      // A. 糖块底部阴影
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(bx, by + 4, 16 + physics.m * 8, 8 + physics.m * 4, 0, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+      ctx.filter = 'blur(3px)';
+      ctx.fill();
+      ctx.restore();
+
+      // B. 绘制具有立体多面质感的方形小糖块
+      ctx.save();
+      const bw = 20 + physics.m * 12; // 尺寸随质量微调增大
+      const bh = 18 + physics.m * 10;
+      const bDepth = 9;
+
+      // 糖块侧面阴影
+      ctx.fillStyle = '#FB7185';
+      ctx.fillRect(bx - bw * 0.5, by - bh * 0.5, bw, bh);
+
+      // 糖块顶面高光
+      ctx.beginPath();
+      ctx.moveTo(bx - bw * 0.5, by - bh * 0.5);
+      ctx.lineTo(bx - bw * 0.5 + bDepth, by - bh * 0.5 - bDepth);
+      ctx.lineTo(bx + bw * 0.5 + bDepth, by - bh * 0.5 - bDepth);
+      ctx.lineTo(bx + bw * 0.5, by - bh * 0.5);
+      ctx.closePath();
+      ctx.fillStyle = '#FDA4AF';
+      ctx.fill();
+
+      // 糖块右侧面
+      ctx.beginPath();
+      ctx.moveTo(bx + bw * 0.5, by - bh * 0.5);
+      ctx.lineTo(bx + bw * 0.5 + bDepth, by - bh * 0.5 - bDepth);
+      ctx.lineTo(bx + bw * 0.5 + bDepth, by + bh * 0.5 - bDepth);
+      ctx.lineTo(bx + bw * 0.5, by + bh * 0.5);
+      ctx.closePath();
+      ctx.fillStyle = '#E11D48';
+      ctx.fill();
+
+      // 糖块主正面
+      const blockGrad = ctx.createLinearGradient(bx - bw * 0.5, by - bh * 0.5, bx + bw * 0.5, by + bh * 0.5);
+      blockGrad.addColorStop(0, '#FFF1F2');
+      blockGrad.addColorStop(1, '#F43F5E');
+      ctx.fillStyle = blockGrad;
+      ctx.fillRect(bx - bw * 0.5, by - bh * 0.5, bw, bh);
+      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = '#FFF';
+      ctx.strokeRect(bx - bw * 0.5, by - bh * 0.5, bw, bh);
+
+      // 糖块正面上标注质量
+      ctx.font = 'bold 11px system-ui';
+      ctx.fillStyle = '#FFF';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`${physics.m.toFixed(1)}kg`, bx, by);
+      ctx.restore();
+
+      // 若未脱离，绘制受力与速度矢量箭头
+      if (!physics.isDetached) {
+        const cosA = Math.cos(physics.angle);
+        const sinA = Math.sin(physics.angle);
+
+        // 1. 红色向心力/静摩擦力箭头 (指向圆心)
+        const forceLen = Math.min(100, Math.max(25, 25 + fnReq * 26));
+        const fTargetX = bx - cosA * forceLen;
+        const fTargetY = by - sinA * forceLen * (diskRadiusY / diskRadiusX);
+
+        drawArrow(ctx, bx, by, fTargetX, fTargetY, '#EF4444', 3.5, `f = ${fnReq.toFixed(2)}N`);
+
+        // 2. 绿色线速度切线矢量箭头 (沿切线运动方向)
+        const vLen = Math.min(110, Math.max(30, 25 + (physics.omega * physics.r) * 28));
+        const tangentCos = -sinA;
+        const tangentSin = cosA * (diskRadiusY / diskRadiusX);
+        const vTargetX = bx + tangentCos * vLen;
+        const vTargetY = by + tangentSin * vLen;
+
+        drawArrow(ctx, bx, by, vTargetX, vTargetY, '#10B981', 3.5, `v = ${(physics.omega * physics.r).toFixed(2)}m/s`);
+      }
+    }
+
+    // 通用矢量箭头绘制辅助函数
+    function drawArrow(ctx, fromX, fromY, toX, toY, color, width, label) {
+      const headLen = 11;
+      const angle = Math.atan2(toY - fromY, toX - fromX);
+
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = width;
+      ctx.lineCap = 'round';
+
+      // 箭杆
+      ctx.beginPath();
+      ctx.moveTo(fromX, fromY);
+      ctx.lineTo(toX, toY);
+      ctx.stroke();
+
+      // 箭头三角
+      ctx.beginPath();
+      ctx.moveTo(toX, toY);
+      ctx.lineTo(toX - headLen * Math.cos(angle - Math.PI / 6), toY - headLen * Math.sin(angle - Math.PI / 6));
+      ctx.lineTo(toX - headLen * Math.cos(angle + Math.PI / 6), toY - headLen * Math.sin(angle + Math.PI / 6));
+      ctx.closePath();
+      ctx.fill();
+
+      // 矢量标注文字
+      if (label) {
+        ctx.font = 'bold 13px system-ui';
+        ctx.fillStyle = color;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+        const labelX = toX + Math.cos(angle) * 14;
+        const labelY = toY + Math.sin(angle) * 14;
+        ctx.fillText(label, labelX, labelY);
+      }
+      ctx.restore();
+    }
+
+    // 轻提示浮层
+    const toastTip = document.getElementById('toastTip');
+    let toastTimer = null;
+    function showToast(msg) {
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTip.textContent = msg;
+      toastTip.classList.add('show');
+      toastTimer = setTimeout(() => {
+        toastTip.classList.remove('show');
+      }, 2600);
+    }
+
+    // 启动实验与自适应
+    resizeCanvas();
+    updateUI();
+    requestAnimationFrame(renderLoop);
+  </script>
+</body>
+</html>

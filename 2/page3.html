@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>棉花糖的秘密 - 蔗糖的物理性质</title>
+  <style>
+    /* =========================================================
+       1. 全局设计规范 (水彩糖果风 & 大字号投影演示标准)
+       ========================================================= */
+    :root {
+      /* 核心主色：奶油白、浅天蓝、马卡龙粉、鹅黄 */
+      --color-cream: #FFF9F0;
+      --color-sky-blue: #E6F2FF;
+      --color-macaron-pink: #FFD6E0;
+      --color-goose-yellow: #FFF3C4;
+      
+      /* 文字色：深灰与暖棕，浅色背景上高对比度 */
+      --text-main: #4A4A4A;
+      --text-deep: #382E2D;
+      --text-muted: #6E6463;
+      --text-light: #8E8483;
+
+      /* 统一毛玻璃规范 */
+      --glass-bg: rgba(255, 255, 255, 0.82);
+      --glass-bg-hover: rgba(255, 255, 255, 0.95);
+      --glass-border: rgba(255, 255, 255, 0.92);
+      --glass-blur: blur(14px);
+      --glass-shadow: 0 10px 30px rgba(150, 130, 140, 0.12), 0 3px 8px rgba(0, 0, 0, 0.03);
+      --glass-shadow-hover: 0 16px 40px rgba(255, 140, 160, 0.22), 0 6px 14px rgba(0, 0, 0, 0.05);
+
+      /* 糖果功能色 */
+      --btn-grad-pink: linear-gradient(135deg, #FFA8BA 0%, #FF708F 100%);
+      --btn-grad-blue: linear-gradient(135deg, #8EC5FC 0%, #60A5FA 100%);
+      --accent-pink: #FF708F;
+      --accent-keyword: #D81B60;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", "Segoe UI", sans-serif;
+      color: var(--text-main);
+      position: relative;
+      background-color: #F8F4EE;
+    }
+
+    /* =========================================================
+       2. 水彩糖果背景层与粒子系统
+       ========================================================= */
+    .bg-watercolor-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background-image: url('assets/watercolor-bg.jpg');
+      background-repeat: no-repeat;
+      background-position: center center;
+      background-size: cover;
+      pointer-events: none;
+    }
+
+    .bg-soft-mask {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background: radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.22) 0%, rgba(255, 250, 246, 0.38) 70%, rgba(255, 240, 245, 0.48) 100%);
+      pointer-events: none;
+    }
+
+    .candy-particles {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .particle {
+      position: absolute;
+      border-radius: 999px;
+      opacity: 0.65;
+      animation: floatGentle 8s ease-in-out infinite alternate;
+    }
+    .p-1 { width: 16px; height: 7px; background: #FFB3C6; top: 15%; left: 8%; transform: rotate(25deg); animation-delay: 0s; }
+    .p-2 { width: 14px; height: 6px; background: #BDE0FE; top: 25%; right: 10%; transform: rotate(-30deg); animation-delay: -2s; }
+    .p-3 { width: 18px; height: 7px; background: #FFE6A7; top: 78%; left: 12%; transform: rotate(45deg); animation-delay: -4s; }
+    .p-4 { width: 8px; height: 8px; background: #FFF; border-radius: 50%; box-shadow: 0 0 10px #FFF; top: 18%; right: 22%; animation-delay: -1s; }
+    .p-5 { width: 6px; height: 6px; background: #FFF; border-radius: 50%; box-shadow: 0 0 8px #FFF; top: 65%; right: 15%; animation-delay: -3s; }
+
+    @keyframes floatGentle {
+      0% { transform: translateY(0) rotate(0deg); opacity: 0.55; }
+      100% { transform: translateY(-12px) rotate(8deg); opacity: 0.85; }
+    }
+
+    /* =========================================================
+       3. 页面主自适应容器 (16:9 / 1920x1080 优化)
+       ========================================================= */
+    .presentation-container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 18px 50px 16px;
+      max-width: 1760px;
+      margin: 0 auto;
+    }
+
+    /* 顶部导航与标签 (字号 >= 18px) */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+
+    .tag-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 22px;
+      background: var(--glass-bg);
+      border: 1.6px solid var(--glass-border);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 999px;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-main);
+      box-shadow: 0 4px 16px rgba(150, 130, 140, 0.08);
+      letter-spacing: 0.5px;
+    }
+    .tag-badge .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: #FF8FA3;
+      box-shadow: 0 0 0 3px rgba(255, 143, 163, 0.25);
+    }
+
+    .top-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .quick-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--glass-bg);
+      border: 1.6px solid var(--glass-border);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      padding: 7px 18px;
+      border-radius: 999px;
+      font-size: 18px;
+      font-weight: 700;
+      color: #5A4849;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(150, 130, 140, 0.08);
+      transition: all 0.25s ease;
+    }
+    .quick-action-btn:hover {
+      background: #FFF;
+      color: #FF5C8A;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(255, 112, 143, 0.25);
+    }
+
+    .page-indicator-top {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-main);
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      padding: 7px 22px;
+      border-radius: 999px;
+      border: 1.6px solid var(--glass-border);
+      box-shadow: 0 4px 16px rgba(150, 130, 140, 0.08);
+      letter-spacing: 1px;
+    }
+
+    /* =========================================================
+       4. 顶部标题区 (大号、醒目)
+       ========================================================= */
+    .hero-section {
+      text-align: center;
+      margin-top: -2px;
+      margin-bottom: 2px;
+    }
+
+    .main-title {
+      font-size: clamp(44px, 3.8vw, 52px);
+      font-weight: 900;
+      color: var(--text-deep);
+      letter-spacing: 3px;
+      margin-bottom: 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      text-shadow: 0 2px 14px rgba(255, 255, 255, 0.95), 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .sparkle-icon {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      color: #FFB703;
+      filter: drop-shadow(0 2px 6px rgba(255, 183, 3, 0.45));
+      animation: spinTwinkle 6s linear infinite;
+    }
+    @keyframes spinTwinkle {
+      0% { transform: rotate(0deg) scale(0.9); }
+      50% { transform: rotate(180deg) scale(1.15); }
+      100% { transform: rotate(360deg) scale(0.9); }
+    }
+
+    .subtitle {
+      font-size: clamp(22px, 1.6vw, 25px);
+      font-weight: 600;
+      color: #554847;
+      letter-spacing: 1px;
+      text-shadow: 0 1px 8px rgba(255, 255, 255, 0.9);
+    }
+
+    /* =========================================================
+       5. 主体区域：5 个问答卡片 (竖向排列，卡片内左右排列)
+       ========================================================= */
+    .qa-cards-container {
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+      width: 100%;
+      max-width: 1660px;
+      margin: 4px auto 0;
+      flex: 1;
+      justify-content: space-between;
+    }
+
+    /* 单张问答卡片 */
+    .qa-card {
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 2px solid var(--glass-border);
+      border-radius: 20px;
+      box-shadow: var(--glass-shadow);
+      padding: 12px 28px 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: clamp(96px, 10.5vh, 116px);
+      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative;
+    }
+
+    .qa-card:hover {
+      box-shadow: var(--glass-shadow-hover);
+      border-color: rgba(255, 175, 195, 0.8);
+      transform: translateY(-2px);
+    }
+
+    /* 本课核心重点卡片：左侧边框醒目标记 */
+    .qa-card.is-core-focus {
+      border-left: 8px solid #FF708F;
+    }
+
+    .qa-card.revealed {
+      background: rgba(255, 255, 255, 0.94);
+      border-color: rgba(255, 180, 200, 0.9);
+    }
+
+    /* ---------------------------------------------------------
+       左侧（占 40%）：问题文字，字号大，加粗 (>= 32px)
+       --------------------------------------------------------- */
+    .card-left-question {
+      width: 40%;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding-right: 20px;
+      border-right: 2px dashed rgba(220, 205, 210, 0.7);
+    }
+
+    .q-badge {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #64B5F6, #1E88E5);
+      color: #FFF;
+      font-size: 22px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(30, 136, 229, 0.25);
+      flex-shrink: 0;
+    }
+
+    .q-text {
+      font-size: clamp(28px, 2.1vw, 32px); /* 严格遵守至少 32px 标准 */
+      font-weight: 800;
+      color: var(--text-deep);
+      line-height: 1.28;
+      letter-spacing: 0.5px;
+    }
+
+    /* ---------------------------------------------------------
+       右侧（占 60%）：答案区域 + 圆形脉冲按钮
+       --------------------------------------------------------- */
+    .card-right-answer {
+      width: 60%;
+      padding-left: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      position: relative;
+    }
+
+    /* 初始未公布时的引导占位符 */
+    .answer-placeholder {
+      font-size: 22px; /* 严格遵守正文至少 22px */
+      font-weight: 600;
+      color: #9E8C8E;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: opacity 0.3s ease;
+    }
+
+    .qa-card.revealed .answer-placeholder {
+      display: none;
+    }
+
+    /* 答案内容展示块 (初始隐藏，点击后淡入) */
+    .answer-content-wrap {
+      display: none;
+      align-items: baseline;
+      gap: 14px;
+      flex-wrap: wrap;
+      flex: 1;
+      opacity: 0;
+      transform: translateX(-8px);
+      transition: opacity 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.4s ease;
+    }
+
+    .qa-card.revealed .answer-content-wrap {
+      display: flex;
+      opacity: 1;
+      transform: translateX(0);
+      animation: answerSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    @keyframes answerSlideIn {
+      0% { opacity: 0; transform: translateX(-12px); }
+      100% { opacity: 1; transform: translateX(0); }
+    }
+
+    /* 答案关键词：字号至少 40px (要求关键醒目) */
+    .answer-keyword {
+      font-size: clamp(36px, 2.6vw, 42px); /* 至少 40px 关键词标准 */
+      font-weight: 900;
+      color: var(--accent-keyword);
+      letter-spacing: 0.5px;
+      text-shadow: 0 2px 8px rgba(216, 27, 96, 0.15);
+      white-space: nowrap;
+    }
+
+    /* 答案正文解说：字号至少 22px */
+    .answer-detail {
+      font-size: clamp(22px, 1.5vw, 24px); /* 至少 22px 正文标准 */
+      font-weight: 600;
+      color: #4A4A4A;
+      line-height: 1.35;
+    }
+
+    /* 本课核心重点标签 (大号胶囊) */
+    .focus-tag-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg, #FF708F, #E91E63);
+      color: #FFF;
+      font-size: 18px;
+      font-weight: 800;
+      padding: 4px 14px;
+      border-radius: 999px;
+      box-shadow: 0 4px 12px rgba(233, 30, 99, 0.25);
+      margin-left: 6px;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    /* ---------------------------------------------------------
+       圆形按钮：“点击公布答案” (带脉冲动画)
+       --------------------------------------------------------- */
+    .reveal-action-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .reveal-btn-circle {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #FFA8BA 0%, #FF708F 100%);
+      color: #FFF;
+      border: 3px solid #FFF;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 900;
+      box-shadow: 0 4px 14px rgba(255, 112, 143, 0.35);
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative;
+      animation: pulseGlow 2.2s infinite ease-in-out;
+    }
+
+    .reveal-btn-circle:hover {
+      transform: scale(1.14);
+      box-shadow: 0 6px 20px rgba(255, 112, 143, 0.55);
+    }
+
+    @keyframes pulseGlow {
+      0% {
+        box-shadow: 0 0 0 0 rgba(255, 112, 143, 0.6), 0 4px 14px rgba(255, 112, 143, 0.35);
+      }
+      70% {
+        box-shadow: 0 0 0 12px rgba(255, 112, 143, 0), 0 4px 14px rgba(255, 112, 143, 0.35);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(255, 112, 143, 0), 0 4px 14px rgba(255, 112, 143, 0.35);
+      }
+    }
+
+    /* 按钮旁文字标签 (>= 18px) */
+    .reveal-btn-label {
+      font-size: 18px;
+      font-weight: 800;
+      color: #FF5C8A;
+      letter-spacing: 0.5px;
+    }
+
+    /* 已公布状态的按钮与标签 */
+    .qa-card.revealed .reveal-btn-circle {
+      background: #E8F5E9;
+      color: #2E7D32;
+      border-color: #C8E6C9;
+      box-shadow: 0 2px 8px rgba(46, 125, 50, 0.15);
+      animation: none;
+      cursor: default;
+      transform: scale(1);
+    }
+
+    .qa-card.revealed .reveal-btn-label {
+      color: #2E7D32;
+    }
+
+    /* =========================================================
+       6. 页面底部引导区 (全部 5 个公布后平滑浮现)
+       ========================================================= */
+    .bottom-guide-wrapper {
+      width: 100%;
+      max-width: 1660px;
+      margin: 4px auto 4px;
+      min-height: 84px;
+      position: relative;
+    }
+
+    /* 初始未公布完时的思考进度提示 */
+    .guide-progress-bar {
+      width: 100%;
+      height: 100%;
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1.8px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 12px 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 16px rgba(150, 130, 140, 0.08);
+      transition: all 0.4s ease;
+    }
+    .progress-hint-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 22px; /* 至少 22px */
+      font-weight: 700;
+      color: var(--text-deep);
+    }
+    .progress-track-outer {
+      width: 260px;
+      height: 10px;
+      background: rgba(0, 0, 0, 0.08);
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+    }
+    .progress-track-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #64B5F6, #FF708F);
+      border-radius: 999px;
+      transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .progress-count-text {
+      font-size: 20px;
+      font-weight: 800;
+      color: #FF5C8A;
+      background: #FFF;
+      padding: 5px 18px;
+      border-radius: 999px;
+      box-shadow: 0 2px 8px rgba(255, 112, 143, 0.15);
+    }
+
+    /* 5个全部公布后平滑展开的引导区 */
+    .guide-conclusion-section {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(255, 245, 248, 0.98) 100%);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 2px solid rgba(255, 175, 195, 0.9);
+      border-radius: 20px;
+      padding: 12px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      box-shadow: 0 12px 36px rgba(255, 112, 143, 0.25);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(16px) scale(0.98);
+      transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .guide-conclusion-section.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0) scale(1);
+    }
+
+    .conclusion-prompt-text {
+      font-size: clamp(24px, 1.8vw, 27px); /* 大字号 */
+      font-weight: 800;
+      color: var(--text-deep);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* 按钮：进入下一页：化学性质 */
+    .next-page-cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 32px;
+      border-radius: 999px;
+      background: var(--btn-grad-pink);
+      color: #FFF;
+      font-size: 22px; /* 至少 22px */
+      font-weight: 800;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(255, 112, 143, 0.4);
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      flex-shrink: 0;
+      letter-spacing: 0.5px;
+    }
+    .next-page-cta-btn:hover {
+      transform: translateY(-2px) scale(1.05);
+      box-shadow: 0 8px 26px rgba(255, 112, 143, 0.55);
+      filter: brightness(1.03);
+    }
+    .next-page-cta-btn:active {
+      transform: translateY(1px) scale(0.98);
+    }
+
+    /* =========================================================
+       7. 统一风格页脚导航栏 (毛玻璃一体化 Dock)
+       ========================================================= */
+    .footer-bar {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 6px;
+      margin-top: 2px;
+    }
+
+    .nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 24px;
+      border-radius: 999px;
+      font-size: 18px; /* 至少 18px */
+      font-weight: 700;
+      border: 1.6px solid var(--glass-border);
+      cursor: pointer;
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      color: var(--text-main);
+      box-shadow: 0 4px 14px rgba(150, 130, 140, 0.08);
+      transition: all 0.25s ease;
+      text-decoration: none;
+    }
+    .nav-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(255, 112, 143, 0.2);
+      background: #FFFFFF;
+      color: #FF708F;
+      border-color: rgba(255, 214, 224, 0.9);
+    }
+    .nav-btn:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    .nav-center-hint {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-shadow: 0 1px 6px rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.55);
+      padding: 6px 20px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.7);
+    }
+    .kbd-pill {
+      background: #FFF;
+      border: 1px solid #E2D9D9;
+      border-bottom: 2px solid #CFC2C2;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 16px;
+      font-family: inherit;
+      color: #FF5C8A;
+      font-weight: 800;
+    }
+
+    .page-indicator-bottom {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-main);
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      padding: 8px 24px;
+      border-radius: 999px;
+      border: 1.6px solid var(--glass-border);
+      box-shadow: 0 4px 14px rgba(150, 130, 140, 0.08);
+      letter-spacing: 1px;
+    }
+
+    /* 吐司轻提示 (大号) */
+    .toast-tip {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(56, 46, 45, 0.94);
+      color: #FFF;
+      padding: 12px 30px;
+      border-radius: 999px;
+      font-size: 19px;
+      font-weight: 700;
+      box-shadow: 0 8px 26px rgba(0,0,0,0.22);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 999;
+      letter-spacing: 0.5px;
+    }
+    .toast-tip.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. 统一水彩糖果背景层 -->
+  <div class="bg-watercolor-layer"></div>
+  <div class="bg-soft-mask"></div>
+
+  <!-- 漂浮糖果与光点微动画 -->
+  <div class="candy-particles">
+    <div class="particle p-1"></div>
+    <div class="particle p-2"></div>
+    <div class="particle p-3"></div>
+    <div class="particle p-4"></div>
+    <div class="particle p-5"></div>
+  </div>
+
+  <!-- 2. 主页面容器 -->
+  <div class="presentation-container">
+
+    <!-- 顶部状态栏 -->
+    <div class="top-bar">
+      <div class="tag-badge">
+        <span class="dot"></span>
+        <span>第一部分 · 棉花糖的化学与离心力</span>
+      </div>
+      <div class="top-bar-right">
+        <button class="quick-action-btn" id="revealAllBtn" title="快捷公布全部 5 个答案">
+          <span>⚡</span>
+          <span>一键公布全部</span>
+        </button>
+        <button class="quick-action-btn" id="resetAllBtn" title="重置回初始提问状态">
+          <span>🔄</span>
+          <span>重置问题</span>
+        </button>
+        <div class="page-indicator-top">第 3 页 / 蔗糖物理性质</div>
+      </div>
+    </div>
+
+    <!-- 顶部标题区 -->
+    <div class="hero-section">
+      <h1 class="main-title">
+        <svg class="sparkle-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z"/>
+        </svg>
+        <span>蔗糖的物理性质</span>
+        <svg class="sparkle-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z"/>
+        </svg>
+      </h1>
+      <p class="subtitle">请同学们根据生活经验，先思考一下。</p>
+    </div>
+
+    <!-- 主体区域：5 个问答卡片 (竖向排列，卡片内左右排列) -->
+    <div class="qa-cards-container">
+
+      <!-- ======================= 问答 1：外观形态 ======================= -->
+      <div class="qa-card" data-index="1">
+        <!-- 左侧 40%：问题文字 (>= 32px) -->
+        <div class="card-left-question">
+          <div class="q-badge">1</div>
+          <div class="q-text">外观形态是怎样的？</div>
+        </div>
+
+        <!-- 右侧 60%：答案区域 (关键词 >= 40px，正文 >= 22px) -->
+        <div class="card-right-answer">
+          <div class="answer-placeholder">
+            <span>🤔 请同学们先思考，点击右侧按钮揭晓答案...</span>
+          </div>
+
+          <div class="answer-content-wrap">
+            <span class="answer-keyword">无色透明晶体</span>
+            <span class="answer-detail">，颗粒状固体</span>
+          </div>
+
+          <div class="reveal-action-group">
+            <span class="reveal-btn-label">点击公布</span>
+            <button class="reveal-btn-circle" title="点击公布答案" aria-label="公布答案">?</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======================= 问答 2：味道特征 ======================= -->
+      <div class="qa-card" data-index="2">
+        <div class="card-left-question">
+          <div class="q-badge">2</div>
+          <div class="q-text">味道特征是什么？</div>
+        </div>
+
+        <div class="card-right-answer">
+          <div class="answer-placeholder">
+            <span>🤔 请同学们先思考，点击右侧按钮揭晓答案...</span>
+          </div>
+
+          <div class="answer-content-wrap">
+            <span class="answer-keyword">有甜味</span>
+            <span class="answer-detail">，最重要的天然甜味剂之一</span>
+          </div>
+
+          <div class="reveal-action-group">
+            <span class="reveal-btn-label">点击公布</span>
+            <button class="reveal-btn-circle" title="点击公布答案" aria-label="公布答案">?</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======================= 问答 3：熔点特性【核心重点】 ======================= -->
+      <div class="qa-card is-core-focus" data-index="3">
+        <div class="card-left-question">
+          <div class="q-badge">3</div>
+          <div class="q-text">熔点是多少？熔化有什么特点？</div>
+        </div>
+
+        <div class="card-right-answer">
+          <div class="answer-placeholder">
+            <span>🤔 请同学们先思考，点击右侧按钮揭晓答案...</span>
+          </div>
+
+          <div class="answer-content-wrap">
+            <span class="answer-keyword">约 186℃</span>
+            <span class="answer-detail">，熔化与分解同时发生</span>
+            <span class="focus-tag-pill">⭐ 本课核心重点</span>
+          </div>
+
+          <div class="reveal-action-group">
+            <span class="reveal-btn-label">点击公布</span>
+            <button class="reveal-btn-circle" title="点击公布答案" aria-label="公布答案">?</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======================= 问答 4：水溶解性【核心重点】 ======================= -->
+      <div class="qa-card is-core-focus" data-index="4">
+        <div class="card-left-question">
+          <div class="q-badge">4</div>
+          <div class="q-text">在水中的溶解能力如何？</div>
+        </div>
+
+        <div class="card-right-answer">
+          <div class="answer-placeholder">
+            <span>🤔 请同学们先思考，点击右侧按钮揭晓答案...</span>
+          </div>
+
+          <div class="answer-content-wrap">
+            <span class="answer-keyword">极易溶于水</span>
+            <span class="answer-detail">，常温下糖水质量比可达 1:2</span>
+            <span class="focus-tag-pill">⭐ 本课核心重点</span>
+          </div>
+
+          <div class="reveal-action-group">
+            <span class="reveal-btn-label">点击公布</span>
+            <button class="reveal-btn-circle" title="点击公布答案" aria-label="公布答案">?</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======================= 问答 5：挥发性【核心重点】 ======================= -->
+      <div class="qa-card is-core-focus" data-index="5">
+        <div class="card-left-question">
+          <div class="q-badge">5</div>
+          <div class="q-text">加热时容易蒸发挥发吗？</div>
+        </div>
+
+        <div class="card-right-answer">
+          <div class="answer-placeholder">
+            <span>🤔 请同学们先思考，点击右侧按钮揭晓答案...</span>
+          </div>
+
+          <div class="answer-content-wrap">
+            <span class="answer-keyword">不挥发</span>
+            <span class="answer-detail">，加热到熔点以上会直接焦化分解</span>
+            <span class="focus-tag-pill">⭐ 本课核心重点</span>
+          </div>
+
+          <div class="reveal-action-group">
+            <span class="reveal-btn-label">点击公布</span>
+            <button class="reveal-btn-circle" title="点击公布答案" aria-label="公布答案">?</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ======================= 6. 页面底部引导区 ======================= -->
+    <div class="bottom-guide-wrapper">
+      
+      <!-- 初始思考进度条 (未全部公布前显示) -->
+      <div class="guide-progress-bar" id="guideProgressBar">
+        <div class="progress-hint-left">
+          <span>🎯 物理性质思考进度：</span>
+          <div class="progress-track-outer">
+            <div class="progress-track-fill" id="progressTrackFill"></div>
+          </div>
+          <span id="progressStatusText">请点击卡片右侧按钮公布答案，或按键盘空格键顺次揭晓</span>
+        </div>
+        <div class="progress-count-text" id="progressCountText">0 / 5 已公布</div>
+      </div>
+
+      <!-- 全部 5 个公布后平滑浮现的引导区 -->
+      <div class="guide-conclusion-section" id="guideConclusionSection">
+        <div class="conclusion-prompt-text">
+          <span>🤔</span>
+          <span>那么，制作棉花糖还需要知道糖的哪些性质呢？</span>
+        </div>
+
+        <button class="next-page-cta-btn" id="nextPageCtaBtn">
+          <span>进入下一页：化学性质</span>
+          <span>→</span>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- ======================= 7. 统一风格页脚导航栏 ======================= -->
+    <div class="footer-bar">
+      <a href="page2.html" class="nav-btn">
+        <span>←</span>
+        <span>上一页 (棉花糖机历史)</span>
+      </a>
+
+      <div class="nav-center-hint">
+        <span>💡 课堂控制：按 <span class="kbd-pill">Space 空格</span> 顺次公布</span>
+        <span>|</span>
+        <span>按 <span class="kbd-pill">Esc</span> 一键全部公布</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <button class="nav-btn" id="navNextBtn">
+          <span>下一页</span>
+          <span>→</span>
+        </button>
+        <div class="page-indicator-bottom">3 / 12</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 轻提示 (Toast) -->
+  <div class="toast-tip" id="toastTip">提示信息</div>
+
+  <script>
+    // =========================================================
+    // 课堂互动问答控制逻辑 (Question Cards & Answer Reveal)
+    // =========================================================
+    const cards = Array.from(document.querySelectorAll('.qa-card'));
+    const totalCount = cards.length;
+    const progressTrackFill = document.getElementById('progressTrackFill');
+    const progressCountText = document.getElementById('progressCountText');
+    const progressStatusText = document.getElementById('progressStatusText');
+    const guideProgressBar = document.getElementById('guideProgressBar');
+    const guideConclusionSection = document.getElementById('guideConclusionSection');
+    const toastTip = document.getElementById('toastTip');
+    let toastTimer = null;
+
+    // 单张卡片公布答案
+    function revealCard(card, showToastMsg = true) {
+      if (card.classList.contains('revealed')) return;
+
+      card.classList.add('revealed');
+      const btn = card.querySelector('.reveal-btn-circle');
+      const label = card.querySelector('.reveal-btn-label');
+      if (btn) {
+        btn.textContent = '✓';
+        btn.title = '答案已公布';
+      }
+      if (label) {
+        label.textContent = '已公布';
+      }
+
+      updateProgress();
+
+      if (showToastMsg) {
+        const title = card.querySelector('.q-text')?.textContent.trim() || '性质问题';
+        showToast(`💡 已公布：${title}`);
+      }
+    }
+
+    // 重置单张卡片
+    function resetCard(card) {
+      card.classList.remove('revealed');
+      const btn = card.querySelector('.reveal-btn-circle');
+      const label = card.querySelector('.reveal-btn-label');
+      if (btn) {
+        btn.textContent = '?';
+        btn.title = '点击公布答案';
+      }
+      if (label) {
+        label.textContent = '点击公布';
+      }
+    }
+
+    // 顺次公布下一张未揭晓的卡片
+    function revealNext() {
+      const nextCard = cards.find(card => !card.classList.contains('revealed'));
+      if (nextCard) {
+        revealCard(nextCard, true);
+      } else {
+        showToast('🎉 5 项物理性质均已公布完毕！');
+      }
+    }
+
+    // 一键公布全部 (教师快捷功能)
+    function revealAll() {
+      cards.forEach(card => revealCard(card, false));
+      updateProgress();
+      showToast('⚡ 已一键公布全部 5 项物理性质与答案！');
+    }
+
+    // 重置全部问题
+    function resetAll() {
+      cards.forEach(card => resetCard(card));
+      updateProgress();
+      showToast('🔄 已重置所有问题，可重新开始课堂提问互动！');
+    }
+
+    // 更新整体公布进度
+    function updateProgress() {
+      const revealedCount = cards.filter(card => card.classList.contains('revealed')).length;
+      const percent = (revealedCount / totalCount) * 100;
+
+      // 更新进度条与计数
+      progressTrackFill.style.width = `${percent}%`;
+      progressCountText.textContent = `${revealedCount} / ${totalCount} 已公布`;
+
+      if (revealedCount === 0) {
+        progressStatusText.textContent = '请点击卡片右侧按钮公布答案，或按键盘空格键顺次揭晓';
+      } else if (revealedCount < totalCount) {
+        progressStatusText.textContent = `已公布 ${revealedCount} 项，还剩 ${totalCount - revealedCount} 项等待同学们思考...`;
+      } else {
+        progressStatusText.textContent = '5 项物理性质全部公布完毕！';
+      }
+
+      // 当 5 个全部公布时，平滑展开底部总结引导区
+      if (revealedCount === totalCount) {
+        guideConclusionSection.classList.add('active');
+        document.querySelectorAll('.qa-card.is-core-focus').forEach(card => {
+          card.style.boxShadow = '0 12px 36px rgba(255, 112, 143, 0.32)';
+        });
+      } else {
+        guideConclusionSection.classList.remove('active');
+        document.querySelectorAll('.qa-card.is-core-focus').forEach(card => {
+          card.style.boxShadow = '';
+        });
+      }
+    }
+
+    // =========================================================
+    // 事件监听绑定 (按钮点击、卡片点击、键盘快捷键)
+    // =========================================================
+
+    // 给每个卡片及其按钮绑定点击事件
+    cards.forEach(card => {
+      const btn = card.querySelector('.reveal-btn-circle');
+      const actionGroup = card.querySelector('.reveal-action-group');
+      
+      // 点击右侧按钮或文字触发公布
+      if (actionGroup) {
+        actionGroup.addEventListener('click', (e) => {
+          e.stopPropagation();
+          revealCard(card);
+        });
+      }
+
+      // 点击卡片本身也可触发公布（若未公布）
+      card.addEventListener('click', () => {
+        if (!card.classList.contains('revealed')) {
+          revealCard(card);
+        }
+      });
+    });
+
+    // 顶部快捷按钮
+    document.getElementById('revealAllBtn').addEventListener('click', revealAll);
+    document.getElementById('resetAllBtn').addEventListener('click', resetAll);
+
+    // 键盘快捷键监听 (<Space> 顺次公布，<Esc> 一键全显)
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault(); // 阻止浏览器滚动！
+        revealNext();
+        return;
+      }
+
+      if (e.key === 'Escape' || e.code === 'Escape') {
+        revealAll();
+        return;
+      }
+
+      // 箭头快捷跳转
+      if (e.key === 'ArrowLeft') {
+        window.location.href = 'page2.html';
+      } else if (e.key === 'ArrowRight') {
+        handleNextPage();
+      }
+    });
+
+    // 下一页跳转
+    function handleNextPage() {
+      window.location.href = 'page4.html';
+    }
+
+    document.getElementById('nextPageCtaBtn').addEventListener('click', handleNextPage);
+    document.getElementById('navNextBtn').addEventListener('click', handleNextPage);
+
+    // 吐司提示展示函数
+    function showToast(msg) {
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTip.textContent = msg;
+      toastTip.classList.add('show');
+      toastTimer = setTimeout(() => {
+        toastTip.classList.remove('show');
+      }, 2300);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,1604 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>棉花糖的秘密 - 棉花糖的制作原理</title>
+  <!-- 引入本地 Three.js 3D 渲染引擎 -->
+  <script src="three.min.js"></script>
+  <script src="assets/cotton_candy_data.js"></script>
+  <style>
+    /* =========================================================
+       1. 全局设计规范 (水彩糖果风 & 大字号投影演示标准)
+       ========================================================= */
+    :root {
+      /* 核心主色：奶油白、浅天蓝、马卡龙粉、鹅黄 */
+      --color-cream: #FFF9F0;
+      --color-sky-blue: #E6F2FF;
+      --color-macaron-pink: #FFD6E0;
+      --color-goose-yellow: #FFF3C4;
+      
+      /* 文字色：深灰与暖棕，浅色背景上高对比度 */
+      --text-main: #4A4A4A;
+      --text-deep: #382E2D;
+      --text-muted: #6E6463;
+      --text-light: #8E8483;
+
+      /* 统一毛玻璃规范 */
+      --glass-bg: rgba(255, 255, 255, 0.82);
+      --glass-bg-hover: rgba(255, 255, 255, 0.94);
+      --glass-border: rgba(255, 255, 255, 0.92);
+      --glass-blur: blur(14px);
+      --glass-shadow: 0 10px 30px rgba(150, 130, 140, 0.12), 0 3px 8px rgba(0, 0, 0, 0.03);
+      --glass-shadow-hover: 0 16px 40px rgba(255, 140, 160, 0.22), 0 6px 14px rgba(0, 0, 0, 0.05);
+
+      /* 糖果功能色 */
+      --btn-grad-pink: linear-gradient(135deg, #FFA8BA 0%, #FF708F 100%);
+      --btn-grad-blue: linear-gradient(135deg, #8EC5FC 0%, #60A5FA 100%);
+      --accent-pink: #FF708F;
+      --accent-gold: #F59E0B;
+      --accent-blue: #3B82F6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", "Segoe UI", sans-serif;
+      color: var(--text-main);
+      position: relative;
+      background-color: #F8F4EE;
+    }
+
+    /* =========================================================
+       2. 水彩糖果背景层与粒子系统
+       ========================================================= */
+    .bg-watercolor-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background-image: url('assets/watercolor-bg.jpg');
+      background-repeat: no-repeat;
+      background-position: center center;
+      background-size: cover;
+      pointer-events: none;
+    }
+
+    .bg-soft-mask {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background: radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.22) 0%, rgba(255, 250, 246, 0.38) 70%, rgba(255, 240, 245, 0.48) 100%);
+      pointer-events: none;
+    }
+
+    .candy-particles {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .particle {
+      position: absolute;
+      border-radius: 999px;
+      opacity: 0.65;
+      animation: floatGentle 8s ease-in-out infinite alternate;
+    }
+    .p-1 { width: 16px; height: 7px; background: #FFB3C6; top: 14%; left: 8%; transform: rotate(25deg); animation-delay: 0s; }
+    .p-2 { width: 14px; height: 6px; background: #BDE0FE; top: 22%; right: 10%; transform: rotate(-30deg); animation-delay: -2s; }
+    .p-3 { width: 18px; height: 7px; background: #FFE6A7; top: 78%; left: 12%; transform: rotate(45deg); animation-delay: -4s; }
+    .p-4 { width: 8px; height: 8px; background: #FFF; border-radius: 50%; box-shadow: 0 0 10px #FFF; top: 18%; right: 22%; animation-delay: -1s; }
+    .p-5 { width: 6px; height: 6px; background: #FFF; border-radius: 50%; box-shadow: 0 0 8px #FFF; top: 65%; right: 15%; animation-delay: -3s; }
+
+    @keyframes floatGentle {
+      0% { transform: translateY(0) rotate(0deg); opacity: 0.55; }
+      100% { transform: translateY(-12px) rotate(8deg); opacity: 0.85; }
+    }
+
+    /* 顶部返回上一页胶囊按钮 (双重保障，确保随时可返回上一页) */
+    .top-nav-back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 18px;
+      background: var(--glass-bg);
+      border: 1.6px solid rgba(255, 180, 200, 0.85);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 999px;
+      font-size: 17px;
+      font-weight: 800;
+      color: #E91E63;
+      text-decoration: none;
+      box-shadow: 0 4px 14px rgba(233, 30, 99, 0.15);
+      transition: all 0.25s ease;
+      cursor: pointer;
+    }
+    .top-nav-back-btn:hover {
+      background: #FFF;
+      color: #C2185B;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(233, 30, 99, 0.3);
+    }
+
+    /* =========================================================
+       3. 页面主自适应容器 (16:9 / 1920x1080 优化)
+       ========================================================= */
+    .presentation-container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 10px 42px 10px;
+      max-width: 1780px;
+      margin: 0 auto;
+    }
+
+    /* 顶部导航与标签 (字号 >= 18px) */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    }
+
+    .tag-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 20px;
+      background: var(--glass-bg);
+      border: 1.6px solid var(--glass-border);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border-radius: 999px;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-main);
+      box-shadow: 0 4px 14px rgba(150, 130, 140, 0.08);
+      letter-spacing: 0.5px;
+    }
+    .tag-badge .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: #FF708F;
+      box-shadow: 0 0 0 3px rgba(255, 112, 143, 0.25);
+    }
+
+    .top-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .quick-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--glass-bg);
+      border: 1.6px solid var(--glass-border);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      padding: 6px 18px;
+      border-radius: 999px;
+      font-size: 18px;
+      font-weight: 700;
+      color: #5A4849;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(150, 130, 140, 0.08);
+      transition: all 0.25s ease;
+    }
+    .quick-action-btn:hover {
+      background: #FFF;
+      color: #FF5C8A;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(255, 112, 143, 0.25);
+    }
+
+    .page-indicator-top {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-main);
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      padding: 6px 22px;
+      border-radius: 999px;
+      border: 1.6px solid var(--glass-border);
+      box-shadow: 0 4px 14px rgba(150, 130, 140, 0.08);
+      letter-spacing: 1px;
+    }
+
+    /* =========================================================
+       4. 顶部标题区 (主标题至少 52px)
+       ========================================================= */
+    .hero-section {
+      text-align: center;
+      margin-top: -4px;
+      margin-bottom: 2px;
+    }
+
+    .main-title {
+      font-size: clamp(48px, 3.6vw, 54px); /* 严格遵守主标题至少 52px */
+      font-weight: 900;
+      color: var(--text-deep);
+      letter-spacing: 3px;
+      margin-bottom: 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      text-shadow: 0 2px 14px rgba(255, 255, 255, 0.95), 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .sparkle-icon {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      color: #FFB703;
+      filter: drop-shadow(0 2px 6px rgba(255, 183, 3, 0.45));
+      animation: spinTwinkle 6s linear infinite;
+    }
+    @keyframes spinTwinkle {
+      0% { transform: rotate(0deg) scale(0.9); }
+      50% { transform: rotate(180deg) scale(1.15); }
+      100% { transform: rotate(360deg) scale(0.9); }
+    }
+
+    .subtitle {
+      font-size: clamp(21px, 1.5vw, 24px);
+      font-weight: 600;
+      color: #554847;
+      letter-spacing: 1px;
+      text-shadow: 0 1px 8px rgba(255, 255, 255, 0.9);
+    }
+
+    /* =========================================================
+       5. 主体区域：左右两栏布局 (左 50% 原理 / 右 50% 3D模型)
+       ========================================================= */
+    .main-content-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(20px, 2.2vw, 36px);
+      width: 100%;
+      max-width: 1720px;
+      margin: 2px auto 0;
+      flex: 1;
+      align-items: stretch;
+    }
+
+    /* =========================================================
+       左侧：原理讲解区 (占 50%)
+       ========================================================= */
+    .principle-left-col {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      height: 100%;
+      justify-content: space-between;
+    }
+
+    /* 1. 承上启下回顾卡片 (常驻保留) */
+    .review-bridge-card {
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1.8px solid var(--glass-border);
+      border-radius: 20px;
+      box-shadow: var(--glass-shadow);
+      padding: 12px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .review-title {
+      font-size: 23px;
+      font-weight: 800;
+      color: var(--text-deep);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .review-icon {
+      font-size: 24px;
+    }
+
+    /* 3 个性质高亮标签 (标签大字号 >= 30px) */
+    .tags-bridge-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .bridge-tag-box {
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 16px;
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(150, 130, 140, 0.08);
+      border: 1.5px solid rgba(255, 255, 255, 0.9);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+    .bridge-tag-box:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(255, 112, 143, 0.2);
+    }
+
+    /* 标签大字号：至少 30px */
+    .bridge-tag-label {
+      font-size: clamp(26px, 1.9vw, 30px); /* 严格遵守右侧性质标签至少 30px */
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+      white-space: nowrap;
+    }
+    .tag-color-melt { color: #E65100; }
+    .tag-color-sol { color: #0D47A1; }
+    .tag-color-burn { color: #C2185B; }
+
+    /* 下方小字标注对应的制作环节 (>= 18px) */
+    .bridge-tag-subnote {
+      font-size: 18px;
+      font-weight: 700;
+      color: #6E5C5D;
+      background: rgba(255, 255, 255, 0.75);
+      padding: 2px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(220, 200, 210, 0.6);
+      white-space: nowrap;
+    }
+
+    /* 步骤控制与进度条提示 */
+    .steps-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 4px;
+    }
+    .steps-section-title {
+      font-size: 21px;
+      font-weight: 800;
+      color: var(--text-deep);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .step-counter-pill {
+      font-size: 17px;
+      font-weight: 800;
+      color: #FF5C8A;
+      background: rgba(255, 255, 255, 0.85);
+      padding: 4px 16px;
+      border-radius: 999px;
+      border: 1.5px solid rgba(255, 180, 200, 0.7);
+      box-shadow: 0 2px 8px rgba(255, 112, 143, 0.15);
+    }
+
+    /* 2. 制作原理四步流程图容器 (分步逐一生成) */
+    .steps-container {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      flex: 1;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    /* 单个步骤卡片：初始隐藏，按空格或点击逐张弹入生成 */
+    .step-card {
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 2px solid var(--glass-border);
+      border-radius: 18px;
+      box-shadow: var(--glass-shadow);
+      padding: 10px 22px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      
+      /* 初始状态：完全透明隐藏，保留预定物理高度不晃动 */
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(22px) scale(0.96);
+      pointer-events: none;
+      transition: opacity 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                  transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                  visibility 0.5s, 
+                  box-shadow 0.3s ease;
+    }
+
+    /* 当激活生成后：平滑弹入并点亮 */
+    .step-card.revealed {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+      animation: stepPopIn 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    @keyframes stepPopIn {
+      0% { opacity: 0; transform: translateY(24px) scale(0.95); }
+      70% { opacity: 1; transform: translateY(-3px) scale(1.02); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .step-card.revealed:hover {
+      transform: translateX(6px);
+      box-shadow: var(--glass-shadow-hover);
+      border-color: rgba(255, 175, 195, 0.85);
+      background: rgba(255, 255, 255, 0.95);
+    }
+
+    /* 步骤图标气泡 */
+    .step-badge {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      color: #FFF;
+      font-size: 22px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+      flex-shrink: 0;
+    }
+    .badge-step-1 { background: linear-gradient(135deg, #64B5F6, #1E88E5); }
+    .badge-step-2 { background: linear-gradient(135deg, #FFB74D, #FB8C00); }
+    .badge-step-3 { background: linear-gradient(135deg, #FF8FA3, #FF5C8A); }
+    .badge-step-4 { background: linear-gradient(135deg, #BA68C8, #8E24AA); }
+
+    .step-content {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      flex: 1;
+    }
+
+    /* 步骤标题与说明文字 (严格遵守步骤文字至少 26px) */
+    .step-header-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .step-title {
+      font-size: clamp(25px, 1.8vw, 28px); /* 至少 26px */
+      font-weight: 900;
+      color: var(--text-deep);
+      letter-spacing: 0.5px;
+    }
+    .step-tag-pill {
+      font-size: 16px;
+      font-weight: 800;
+      padding: 2px 10px;
+      border-radius: 999px;
+      color: #FFF;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+    .pill-step-1 { background: #1E88E5; }
+    .pill-step-2 { background: #FB8C00; }
+    .pill-step-3 { background: #FF5C8A; }
+    .pill-step-4 { background: #8E24AA; }
+
+    .step-desc {
+      font-size: clamp(21px, 1.5vw, 23px); /* 至少 21px~23px */
+      font-weight: 600;
+      color: #4A4A4A;
+      line-height: 1.35;
+    }
+    .step-desc strong {
+      color: #D81B60;
+    }
+
+    /* 当前等待触发的提示波纹小卡 */
+    .step-prompt-guide-pill {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: 24px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 2px solid #FF8FA3;
+      padding: 8px 24px;
+      border-radius: 999px;
+      font-size: 18px;
+      font-weight: 800;
+      color: #FF5C8A;
+      box-shadow: 0 4px 18px rgba(255, 112, 143, 0.25);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: pulseBounce 2s infinite ease-in-out;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 5;
+    }
+    .step-prompt-guide-pill.hide {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    @keyframes pulseBounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(-6px); }
+    }
+
+    /* =========================================================
+       右侧：动态 3D 棉花糖机模型区 (占 50% 常驻保留)
+       ========================================================= */
+    .model-right-col {
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 2px solid var(--glass-border);
+      border-radius: 24px;
+      box-shadow: var(--glass-shadow);
+      padding: 14px 18px 12px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* 3D 顶部状态标签条 */
+    .model-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      z-index: 10;
+      padding: 0 4px;
+    }
+    .model-title-badge {
+      font-size: 19px;
+      font-weight: 800;
+      color: var(--text-deep);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.7);
+      padding: 5px 16px;
+      border-radius: 999px;
+      border: 1.5px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 0 2px 8px rgba(150, 130, 140, 0.08);
+    }
+    .model-live-pill {
+      font-size: 16px;
+      font-weight: 800;
+      color: #2E7D32;
+      background: #E8F5E9;
+      border: 1px solid #C8E6C9;
+      padding: 4px 14px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4CAF50;
+      animation: pulseLive 1.5s infinite ease-in-out;
+    }
+    @keyframes pulseLive {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.4); opacity: 1; box-shadow: 0 0 8px #4CAF50; }
+    }
+
+    /* Three.js 3D 渲染挂载容器 (自然柔和天蓝微景，增强粉白棉花糖色彩对比) */
+    .three-canvas-container {
+      width: 100%;
+      flex: 1;
+      position: relative;
+      border-radius: 18px;
+      overflow: hidden;
+      cursor: grab;
+      margin: 6px 0 4px;
+      background: radial-gradient(circle at 50% 25%, #E8F4FD 0%, #D0E5F8 45%, #B2D4F2 80%, #99C3E9 100%);
+      border: 2px solid rgba(255, 255, 255, 0.9);
+      box-shadow: inset 0 3px 16px rgba(50, 95, 145, 0.18), 0 4px 14px rgba(100, 140, 180, 0.12);
+    }
+    .three-canvas-container:active {
+      cursor: grabbing;
+    }
+    #threeCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* 3D 悬浮操作提示 */
+    .model-footer-hint {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-muted);
+      z-index: 10;
+      padding: 2px 6px;
+    }
+    .param-chip {
+      background: rgba(255, 255, 255, 0.8);
+      padding: 3px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 220, 230, 0.8);
+      font-size: 15px;
+      color: #FF5C8A;
+      font-weight: 800;
+    }
+
+    /* =========================================================
+       6. 页面底部引导区 (全部 4 步出齐后平滑浮现)
+       ========================================================= */
+    .bottom-guide-section {
+      width: 100%;
+      max-width: 1720px;
+      margin: 4px auto 4px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 245, 248, 0.98) 100%);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 2px solid rgba(255, 175, 195, 0.9);
+      border-radius: 20px;
+      padding: 10px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      box-shadow: 0 8px 28px rgba(255, 112, 143, 0.2);
+      opacity: 0;
+      transform: translateY(16px);
+      pointer-events: none;
+      transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .bottom-guide-section.active {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .conclusion-prompt-text {
+      font-size: clamp(21px, 1.6vw, 25px); /* 大字号 */
+      font-weight: 800;
+      color: var(--text-deep);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .next-page-cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 30px;
+      border-radius: 999px;
+      background: var(--btn-grad-pink);
+      color: #FFF;
+      font-size: 21px; /* 至少 22px 左右 */
+      font-weight: 800;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(255, 112, 143, 0.4);
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      flex-shrink: 0;
+      letter-spacing: 0.5px;
+    }
+    .next-page-cta-btn:hover {
+      transform: translateY(-2px) scale(1.05);
+      box-shadow: 0 8px 26px rgba(255, 112, 143, 0.55);
+      filter: brightness(1.03);
+    }
+    .next-page-cta-btn:active {
+      transform: translateY(1px) scale(0.98);
+    }
+
+    /* =========================================================
+       7. 统一风格页脚导航栏 (毛玻璃一体化 Dock)
+       ========================================================= */
+    .footer-bar {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 6px;
+      margin-top: 2px;
+      flex-shrink: 0; /* 严格保证页脚与上一页按钮常驻屏幕不被挤压 */
+    }
+
+    .nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 22px;
+      border-radius: 999px;
+      font-size: 18px; /* 至少 18px */
+      font-weight: 700;
+      border: 1.6px solid var(--glass-border);
+      cursor: pointer;
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      color: var(--text-main);
+      box-shadow: 0 4px 14px rgba(150, 130, 140, 0.08);
+      transition: all 0.25s ease;
+      text-decoration: none;
+    }
+    .nav-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(255, 112, 143, 0.2);
+      background: #FFFFFF;
+      color: #FF708F;
+      border-color: rgba(255, 214, 224, 0.9);
+    }
+    .nav-btn:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    .nav-center-hint {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 17px;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-shadow: 0 1px 6px rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.55);
+      padding: 5px 20px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.7);
+    }
+    .kbd-pill {
+      background: #FFF;
+      border: 1px solid #E2D9D9;
+      border-bottom: 2px solid #CFC2C2;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 15px;
+      font-family: inherit;
+      color: #FF5C8A;
+      font-weight: 800;
+    }
+
+    .page-indicator-bottom {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text-main);
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      padding: 7px 22px;
+      border-radius: 999px;
+      border: 1.6px solid var(--glass-border);
+      box-shadow: 0 4px 14px rgba(150, 130, 140, 0.08);
+      letter-spacing: 1px;
+    }
+
+    /* 吐司轻提示 (大号) */
+    .toast-tip {
+      position: fixed;
+      bottom: 78px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(56, 46, 45, 0.94);
+      color: #FFF;
+      padding: 12px 30px;
+      border-radius: 999px;
+      font-size: 19px;
+      font-weight: 700;
+      box-shadow: 0 8px 26px rgba(0,0,0,0.22);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 999;
+      letter-spacing: 0.5px;
+    }
+    .toast-tip.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. 统一水彩糖果背景层 -->
+  <div class="bg-watercolor-layer"></div>
+  <div class="bg-soft-mask"></div>
+
+  <!-- 漂浮糖果与光点微动画 -->
+  <div class="candy-particles">
+    <div class="particle p-1"></div>
+    <div class="particle p-2"></div>
+    <div class="particle p-3"></div>
+    <div class="particle p-4"></div>
+    <div class="particle p-5"></div>
+  </div>
+
+  <!-- 2. 主页面容器 -->
+  <div class="presentation-container">
+
+    <!-- 顶部状态栏 -->
+    <div class="top-bar">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <a href="page4.html" class="top-nav-back-btn" title="返回第 4 页：蔗糖的化学性质">
+          <span style="font-size: 19px; font-weight: 900;">←</span>
+          <span>上一页 (化学性质)</span>
+        </a>
+        <div class="tag-badge">
+          <span class="dot"></span>
+          <span>第一部分 · 棉花糖的化学与离心力</span>
+        </div>
+      </div>
+      <div class="top-bar-right">
+        <button class="quick-action-btn" id="revealAllStepsBtn" title="快捷展开全部 4 个制作步骤">
+          <span>⚡</span>
+          <span>一键展开全部</span>
+        </button>
+        <button class="quick-action-btn" id="resetStepsBtn" title="重置回初始分步演示状态">
+          <span>🔄</span>
+          <span>重新演示</span>
+        </button>
+        <div class="page-indicator-top">第 5 页 / 制作原理与相变</div>
+      </div>
+    </div>
+
+    <!-- 顶部标题区 -->
+    <div class="hero-section">
+      <h1 class="main-title">
+        <svg class="sparkle-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z"/>
+        </svg>
+        <span>糖，怎么变成棉花糖？</span>
+        <svg class="sparkle-icon" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0L14.59 9.41L24 12L14.59 14.59L12 24L9.41 14.59L0 12L9.41 9.41L12 0Z"/>
+        </svg>
+      </h1>
+      <p class="subtitle">从熔点、溶解性到离心力，一步步看清制作原理。</p>
+    </div>
+
+    <!-- 主体区域：左右两栏布局 -->
+    <div class="main-content-grid">
+
+      <!-- ======================= 左侧：原理讲解区 (50%) ======================= -->
+      <div class="principle-left-col">
+
+        <!-- 1. 承上启下回顾卡片 (常驻保留) -->
+        <div class="review-bridge-card">
+          <div class="review-title">
+            <span class="review-icon">💡</span>
+            <span>制作棉花糖，需要用到哪些性质？</span>
+          </div>
+          <div class="tags-bridge-row">
+            <!-- 标签 1：熔点 -->
+            <div class="bridge-tag-box">
+              <div class="bridge-tag-label tag-color-melt">【熔点约 186℃】</div>
+              <div class="bridge-tag-subnote">🔥 加热液化成糖浆</div>
+            </div>
+            <!-- 标签 2：易溶 -->
+            <div class="bridge-tag-box">
+              <div class="bridge-tag-label tag-color-sol">【易溶于水】</div>
+              <div class="bridge-tag-subnote">💧 接触舌尖即化</div>
+            </div>
+            <!-- 标签 3：焦化 -->
+            <div class="bridge-tag-box">
+              <div class="bridge-tag-label tag-color-burn">【受热焦化分解】</div>
+              <div class="bridge-tag-subnote">⚠️ 必须严格精准控温</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 步骤栏头部与计数 -->
+        <div class="steps-header-bar">
+          <div class="steps-section-title">
+            <span>⚙️ 制作原理四步工艺：</span>
+          </div>
+          <div class="step-counter-pill" id="stepCounterPill">步骤进度：0 / 4</div>
+        </div>
+
+        <!-- 2. 制作原理四步流程图容器 (分步逐一生成) -->
+        <div class="steps-container" id="stepsContainer">
+
+          <!-- 第一步 -->
+          <div class="step-card" data-step="1">
+            <div class="step-badge badge-step-1">1</div>
+            <div class="step-content">
+              <div class="step-header-row">
+                <span class="step-title">第一步：固态糖</span>
+                <span class="step-tag-pill pill-step-1">常温晶体</span>
+              </div>
+              <div class="step-desc">
+                常温下蔗糖是<strong>规则紧密的固体晶体</strong>，颗粒分明且不具备延展性。
+              </div>
+            </div>
+          </div>
+
+          <!-- 第二步 -->
+          <div class="step-card" data-step="2">
+            <div class="step-badge badge-step-2">2</div>
+            <div class="step-content">
+              <div class="step-header-row">
+                <span class="step-title">第二步：加热液化</span>
+                <span class="step-tag-pill pill-step-2">相变流动</span>
+              </div>
+              <div class="step-desc">
+                加热到 <strong>186℃ 以上</strong>，固态晶格解体，晶体熔化变成<strong>高粘稠度的液态糖浆</strong>。
+              </div>
+            </div>
+          </div>
+
+          <!-- 第三步 -->
+          <div class="step-card" data-step="3">
+            <div class="step-badge badge-step-3">3</div>
+            <div class="step-content">
+              <div class="step-header-row">
+                <span class="step-title">第三步：高速离心</span>
+                <span class="step-tag-pill pill-step-3">离心甩丝</span>
+              </div>
+              <div class="step-desc">
+                糖浆进入<strong>高速旋转转盘（2800 RPM）</strong>，在巨大离心力作用下由微米级细孔强力甩出。
+              </div>
+            </div>
+          </div>
+
+          <!-- 第四步 -->
+          <div class="step-card" data-step="4">
+            <div class="step-badge badge-step-4">4</div>
+            <div class="step-content">
+              <div class="step-header-row">
+                <span class="step-title">第四步：冷却成丝</span>
+                <span class="step-tag-pill pill-step-4">急速成型</span>
+              </div>
+              <div class="step-desc">
+                甩出的微细糖丝与冷空气接触<strong>瞬时冷却凝固</strong>，形成无数纳米级微丝，堆积成蓬松棉花糖！
+              </div>
+            </div>
+          </div>
+
+          <!-- 初始波纹提示药丸 -->
+          <div class="step-prompt-guide-pill" id="stepPromptPill">
+            <span>👉 按【空格键】或【点击空白】揭晓第一步</span>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- ======================= 右侧：动态 3D 棉花糖机模型 (50% 常驻保留) ======================= -->
+      <div class="model-right-col" id="modelRightCol">
+        <div class="model-header-bar">
+          <div class="model-title-badge">
+            <span>⚙️</span>
+            <span>棉花糖机工作实况 · 3D 物理模拟</span>
+          </div>
+          <div class="model-live-pill">
+            <span class="live-dot"></span>
+            <span>离心机运转中</span>
+          </div>
+        </div>
+
+        <!-- 3D 渲染画布容器 -->
+        <div class="three-canvas-container" id="canvasContainer">
+          <canvas id="threeCanvas"></canvas>
+        </div>
+
+        <div class="model-footer-hint">
+          <span>🖱️ 提示：按住鼠标左键可 360° 旋转机身视角 | 滚轮缩放</span>
+          <span class="param-chip" id="modelParamChip">高速离心 2800 RPM · 恒温 190℃</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ======================= 6. 页面底部引导区 (全部 4 步出齐后平滑浮现) ======================= -->
+    <div class="bottom-guide-section" id="bottomGuideSection">
+      <div class="conclusion-prompt-text">
+        <span>🤔</span>
+        <span>糖已经熔化了，可是转盘转动时，糖浆到底是怎样被“甩”出去的？我们用物理知识深入解析！</span>
+      </div>
+
+      <button class="next-page-cta-btn" id="nextPageCtaBtn">
+        <span>进入下一页：离心现象与向心力</span>
+        <span>→</span>
+      </button>
+    </div>
+
+    <!-- ======================= 7. 统一风格页脚导航栏 ======================= -->
+    <div class="footer-bar">
+      <a href="page4.html" class="nav-btn">
+        <span>←</span>
+        <span>上一页 (化学性质)</span>
+      </a>
+
+      <div class="nav-center-hint">
+        <span>🎮 课堂步骤控制：按 <span class="kbd-pill">Space 空格</span> 逐一出现步骤</span>
+        <span>|</span>
+        <span>按 <span class="kbd-pill">Esc</span> 全部展开</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 16px;">
+        <button class="nav-btn" id="navNextBtn">
+          <span>下一页</span>
+          <span>→</span>
+        </button>
+        <div class="page-indicator-bottom">5 / 12</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 轻提示 (Toast) -->
+  <div class="toast-tip" id="toastTip">提示信息</div>
+
+  <script>
+    // =========================================================
+    // 步骤分步交互控制 (Step-by-Step Interactive Presentation)
+    // =========================================================
+    const stepCards = Array.from(document.querySelectorAll('.step-card'));
+    const totalSteps = stepCards.length; // 4
+    let currentStep = 0; // 0 代表尚未揭晓任何步骤
+
+    const stepCounterPill = document.getElementById('stepCounterPill');
+    const stepPromptPill = document.getElementById('stepPromptPill');
+    const bottomGuideSection = document.getElementById('bottomGuideSection');
+    const modelParamChip = document.getElementById('modelParamChip');
+
+    // 步骤标题映射 (用于展示提示)
+    const stepNames = [
+      '第一步：固态糖',
+      '第二步：加热液化',
+      '第三步：高速离心',
+      '第四步：冷却成丝'
+    ];
+
+    // 逐步揭晓下一步
+    function revealNextStep() {
+      if (currentStep < totalSteps) {
+        currentStep++;
+        const card = stepCards[currentStep - 1];
+        card.classList.add('revealed');
+        updateStepUI();
+        showToast(`✨ [第 ${currentStep} 步已生成] ${stepNames[currentStep - 1]}`);
+      } else {
+        showToast('🎉 四步制作原理已全部讲解完毕！可查看下方思考引导');
+      }
+    }
+
+    // 一键全部展开
+    function revealAllSteps() {
+      stepCards.forEach(card => card.classList.add('revealed'));
+      currentStep = totalSteps;
+      updateStepUI();
+      showToast('⚡ 已一键全部生成四步制作原理卡片！');
+    }
+
+    // 重新分步演示
+    function resetSteps() {
+      stepCards.forEach(card => card.classList.remove('revealed'));
+      currentStep = 0;
+      updateStepUI();
+      showToast('🔄 已重置步骤！可按空格或点击重新分步讲授');
+    }
+
+    // 更新界面与 3D 模拟参数状态
+    function updateStepUI() {
+      stepCounterPill.textContent = `步骤进度：${currentStep} / ${totalSteps}`;
+
+      // 动态提示药丸
+      if (currentStep === 0) {
+        stepPromptPill.innerHTML = '<span>👉 按【空格键】或【点击空白】揭晓第一步</span>';
+        stepPromptPill.classList.remove('hide');
+        modelParamChip.textContent = '常温待机 · 0 RPM';
+      } else if (currentStep < totalSteps) {
+        stepPromptPill.innerHTML = `<span>👉 按【空格键】或点击生成下一步：${stepNames[currentStep]}</span>`;
+        stepPromptPill.classList.remove('hide');
+
+        if (currentStep === 1) {
+          modelParamChip.textContent = '第一阶段：固态糖晶装入';
+        } else if (currentStep === 2) {
+          modelParamChip.textContent = '第二阶段：恒温 190℃ 加热液化中🔥';
+        } else if (currentStep === 3) {
+          modelParamChip.textContent = '第三阶段：高速离心 2800 RPM 强力甩丝⚡';
+        }
+      } else {
+        // 全部生成完毕
+        stepPromptPill.classList.add('hide');
+        bottomGuideSection.classList.add('active');
+        modelParamChip.textContent = '全套工艺就绪 · 棉花糖蓬松成型✨';
+      }
+    }
+
+    // 绑定顶部快捷按钮
+    document.getElementById('revealAllStepsBtn').addEventListener('click', revealAllSteps);
+    document.getElementById('resetStepsBtn').addEventListener('click', resetSteps);
+
+    // =========================================================
+    // 鼠标与键盘分流监听 (防止 3D 拖拽时误触翻步)
+    // =========================================================
+
+    // 键盘监听：Space 键推进，Esc 键全显
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault(); // 阻止浏览器滚动
+        revealNextStep();
+        return;
+      }
+
+      if (e.key === 'Escape' || e.code === 'Escape') {
+        revealAllSteps();
+        return;
+      }
+
+      if (e.key === 'ArrowLeft') {
+        window.location.href = 'page4.html';
+      } else if (e.key === 'ArrowRight') {
+        handleNextPage();
+      }
+    });
+
+    // 鼠标点击事件分流
+    document.addEventListener('click', (e) => {
+      // 1. 如果点击在 3D 画布区域，绝对不触发步骤生成（让用户专心拖拽旋转 3D 模型）
+      if (e.target.closest('#canvasContainer, .model-right-col')) {
+        return;
+      }
+
+      // 2. 如果点击在按钮、链接等可操作元素上，不触发
+      if (e.target.closest('button, a, input, select')) {
+        return;
+      }
+
+      // 3. 点击页面其他空白区或左侧区域，按顺序生成下一步
+      if (currentStep < totalSteps) {
+        revealNextStep();
+      }
+    });
+
+    // =========================================================
+    // Three.js 动态 3D 棉花糖机与甩丝物理粒子系统 (常驻运行)
+    // =========================================================
+    const container = document.getElementById('canvasContainer');
+    const canvas = document.getElementById('threeCanvas');
+
+    // 1. 初始化场景与相机
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+    camera.position.set(0, 12.0, 36);
+    camera.lookAt(0, 9.8, 0);
+
+    const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    // 2. 光照系统 (温暖日光 + 柔和粉润补光 + 顶部轮廓光)
+    const ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.88);
+    scene.add(ambientLight);
+
+    const dirLight1 = new THREE.DirectionalLight(0xFFFBF0, 1.25);
+    dirLight1.position.set(16, 26, 20);
+    scene.add(dirLight1);
+
+    const dirLight2 = new THREE.DirectionalLight(0xFFD6E0, 0.75);
+    dirLight2.position.set(-16, 12, -10);
+    scene.add(dirLight2);
+
+    const dirLight3 = new THREE.DirectionalLight(0xFFFFFF, 0.6);
+    dirLight3.position.set(0, 32, 5);
+    scene.add(dirLight3);
+
+    // 机器模型主装配组
+    const machineGroup = new THREE.Group();
+    machineGroup.position.y = -4.5;
+    scene.add(machineGroup);
+
+    // 3. 构造圆柱形机器底座 (半透明马卡龙材质)
+    const baseGeo = new THREE.CylinderGeometry(8.5, 9.2, 5.5, 48);
+    const baseMat = new THREE.MeshPhongMaterial({
+      color: 0xFFF5F7,
+      emissive: 0xFFDDE5,
+      emissiveIntensity: 0.15,
+      specular: 0xFFFFFF,
+      shininess: 30,
+      transparent: true,
+      opacity: 0.88
+    });
+    const baseMesh = new THREE.Mesh(baseGeo, baseMat);
+    baseMesh.position.y = 2.75;
+    machineGroup.add(baseMesh);
+
+    // 底座外圈金属装饰环
+    const ringGeo = new THREE.TorusGeometry(8.9, 0.25, 16, 48);
+    const ringMat = new THREE.MeshStandardMaterial({ color: 0xF59E0B, metalness: 0.8, roughness: 0.3 });
+    const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+    ringMesh.rotation.x = Math.PI / 2;
+    ringMesh.position.y = 5.4;
+    machineGroup.add(ringMesh);
+
+    // 4. 不锈钢出糖深盆 / 保护罩 (Bowl)
+    const bowlGeo = new THREE.CylinderGeometry(13.5, 9.5, 7.5, 48, 1, true);
+    const bowlMat = new THREE.MeshPhysicalMaterial({
+      color: 0xE8F0FE,
+      metalness: 0.2,
+      roughness: 0.1,
+      transparent: true,
+      opacity: 0.45,
+      side: THREE.DoubleSide
+    });
+    const bowlMesh = new THREE.Mesh(bowlGeo, bowlMat);
+    bowlMesh.position.y = 9.2;
+    machineGroup.add(bowlMesh);
+
+    // 5. 中间高速旋转出糖头 (Spinner Head Assembly)
+    const spinnerGroup = new THREE.Group();
+    spinnerGroup.position.y = 7.0;
+    machineGroup.add(spinnerGroup);
+
+    // 中心转轴
+    const shaftGeo = new THREE.CylinderGeometry(0.7, 0.7, 5, 24);
+    const shaftMat = new THREE.MeshStandardMaterial({ color: 0x9E9E9E, metalness: 0.9, roughness: 0.2 });
+    const shaftMesh = new THREE.Mesh(shaftGeo, shaftMat);
+    shaftMesh.position.y = -1.5;
+    spinnerGroup.add(shaftMesh);
+
+    // 旋转出糖转盘
+    const spinnerDiscGeo = new THREE.CylinderGeometry(3.6, 3.8, 2.2, 36);
+    const spinnerDiscMat = new THREE.MeshStandardMaterial({
+      color: 0xE0E0E0,
+      metalness: 0.85,
+      roughness: 0.25
+    });
+    const spinnerDisc = new THREE.Mesh(spinnerDiscGeo, spinnerDiscMat);
+    spinnerGroup.add(spinnerDisc);
+
+    // 转盘顶部金色盖帽与加糖口
+    const spinnerCapGeo = new THREE.CylinderGeometry(3.4, 3.6, 0.4, 36);
+    const spinnerCapMat = new THREE.MeshStandardMaterial({ color: 0xFFB703, metalness: 0.7, roughness: 0.3 });
+    const spinnerCap = new THREE.Mesh(spinnerCapGeo, spinnerCapMat);
+    spinnerCap.position.y = 1.2;
+    spinnerGroup.add(spinnerCap);
+
+    // 加热电热圈发光模拟 (186℃ 高温发光环)
+    const heaterGeo = new THREE.TorusGeometry(3.65, 0.18, 16, 36);
+    const heaterMat = new THREE.MeshBasicMaterial({ color: 0xFF5722 });
+    const heaterMesh = new THREE.Mesh(heaterGeo, heaterMat);
+    heaterMesh.rotation.x = Math.PI / 2;
+    spinnerGroup.add(heaterMesh);
+
+    // 6. 离心甩出的糖丝粒子系统 (Centrifugal Sugar Floss Particle Stream)
+    const particleCount = 450;
+    const particleGeo = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    const colors = new Float32Array(particleCount * 3);
+    const particleData = [];
+
+    const colorStart = new THREE.Color(0xFFE082); // 熔化糖浆暖黄
+    const colorMid = new THREE.Color(0xFF8FA3);   // 甩出细丝草莓粉
+    const colorEnd = new THREE.Color(0xFFFFFF);   // 冷却凝结白丝
+
+    for (let i = 0; i < particleCount; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 3.6 + Math.random() * 8.5; // 从转盘甩到盆边缘
+      const x = Math.cos(angle) * radius;
+      const z = Math.sin(angle) * radius;
+      const y = 6.8 + Math.random() * 4.5 + (radius - 3.6) * 0.4;
+
+      positions[i * 3] = x;
+      positions[i * 3 + 1] = y;
+      positions[i * 3 + 2] = z;
+
+      const progress = (radius - 3.6) / 8.5;
+      const curColor = progress < 0.4 ? colorStart.clone().lerp(colorMid, progress / 0.4) : colorMid.clone().lerp(colorEnd, (progress - 0.4) / 0.6);
+
+      colors[i * 3] = curColor.r;
+      colors[i * 3 + 1] = curColor.g;
+      colors[i * 3 + 2] = curColor.b;
+
+      particleData.push({
+        angle: angle,
+        radius: radius,
+        speed: 0.12 + Math.random() * 0.14,
+        rotSpeed: 0.08 + Math.random() * 0.06,
+        baseY: 6.8 + Math.random() * 1.5,
+        liftSpeed: 0.02 + Math.random() * 0.03
+      });
+    }
+
+    particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    particleGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+    const particleMat = new THREE.PointsMaterial({
+      size: 0.38,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.88,
+      blending: THREE.NormalBlending
+    });
+
+    const particleSystem = new THREE.Points(particleGeo, particleMat);
+    machineGroup.add(particleSystem);
+
+    // 7. 上方堆积成型的大号蓬松棉花糖 (从第一页完整移植的高逼真蓬松棉花糖)
+    const cottonCandyGroup = new THREE.Group();
+    cottonCandyGroup.position.set(0, 15.0, 0);
+    machineGroup.add(cottonCandyGroup);
+
+    // 经典白色手持纸棒 (插在棉花糖的正上方，人从上方手持拿棍操作)
+    const stickGeo = new THREE.CylinderGeometry(0.26, 0.34, 18, 24);
+    const stickMat = new THREE.MeshStandardMaterial({
+      color: 0xFDFBF7,
+      roughness: 0.65,
+      metalness: 0.05
+    });
+    const stickMesh = new THREE.Mesh(stickGeo, stickMat);
+    // 棍子插入棉花糖核心，并从棉花糖正上方延伸出视口高处
+    stickMesh.position.set(0.22, 6.2, 0);
+    stickMesh.rotation.z = -0.10; // 自然微倾角
+    cottonCandyGroup.add(stickMesh);
+
+    // 蓬松棉花糖云团主装配组 (从第 1 页完整提取高质感材质，全向立体交叉架构)
+    const candyCloudGroup = new THREE.Group();
+    cottonCandyGroup.add(candyCloudGroup);
+
+    // 加载第一页同款高清晰真实棉花糖材质 (本地 Base64 优先，免 CORS)
+    const textureSrc = window.COTTON_CANDY_BASE64 || 'assets/cotton_candy.png';
+    const textureLoader = new THREE.TextureLoader();
+    const texture = textureLoader.load(textureSrc, () => {
+      renderer.render(scene, camera);
+    });
+    texture.generateMipmaps = true;
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+
+    // 精准 UV 裁剪：纯棉花糖云团部分（去除原图下方手柄），比例 420:468
+    texture.repeat.set(1.0, 468 / 694);
+    texture.offset.set(0.0, (694 - 468) / 694);
+
+    const candyHeight = 13.2;
+    const candyWidth = candyHeight * (420 / 468); // ~11.84
+    const candyGeom = new THREE.PlaneGeometry(candyWidth, candyHeight);
+    const candyMat = new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      alphaTest: 0.005,
+      depthWrite: false,
+      side: THREE.DoubleSide
+    });
+
+    // 4 交叉全向立体广告牌 (0°, 45°, 90°, 135°)，360° 旋转无论何种视角都呈现饱满多层次真棉花糖
+    const candyAngles = [0, Math.PI / 4, Math.PI / 2, (3 * Math.PI) / 4];
+    candyAngles.forEach((ang, idx) => {
+      const mesh = new THREE.Mesh(candyGeom, candyMat);
+      mesh.rotation.y = ang;
+      const sc = idx % 2 === 0 ? 1.0 : 0.96;
+      mesh.scale.set(sc, sc, sc);
+      mesh.position.y = -0.2; // 微调垂直对齐
+      candyCloudGroup.add(mesh);
+    });
+
+    // 内层温暖粉柔光芯 (提供视线纵深与柔和体积感)
+    const coreGeo = new THREE.SphereGeometry(3.6, 24, 24);
+    const coreMat = new THREE.MeshPhongMaterial({
+      color: 0xFFAEC0,
+      emissive: 0xFF708F,
+      emissiveIntensity: 0.35,
+      specular: 0xFFF0F5,
+      shininess: 8,
+      transparent: true,
+      opacity: 0.45,
+      depthWrite: false
+    });
+    const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+    coreMesh.scale.set(1.0, 1.25, 1.0);
+    candyCloudGroup.add(coreMesh);
+
+    // 细致糖丝外围缠绕层 (Spun-Sugar Gossamer Lines - 模拟甩丝成型)
+    const silkGroup = new THREE.Group();
+    const silkColors = [0xFFFFFF, 0xFFEBF0, 0xFFD6E0, 0xFFF8FA];
+
+    for (let s = 0; s < 18; s++) {
+      const points = [];
+      const yCenter = -3.8 + (s / 18) * 8.2;
+      const baseRadius = 5.5 + Math.sin(s * 0.85) * 1.1;
+      const turns = 1.0 + Math.random() * 1.4;
+      const tilt = (Math.random() - 0.5) * 0.45;
+      const numPts = 24;
+
+      for (let p = 0; p <= numPts; p++) {
+        const t = p / numPts;
+        const angle = t * Math.PI * 2 * turns + (s * 0.9);
+        const r = baseRadius * (1 + 0.14 * Math.sin(t * Math.PI * 4 + s));
+        const x = Math.cos(angle) * r;
+        const z = Math.sin(angle) * r;
+        const y = yCenter + Math.sin(angle * 1.4) * 1.5 + (t - 0.5) * 2.8 + x * tilt;
+        points.push(new THREE.Vector3(x, y, z));
+      }
+
+      const curve = new THREE.CatmullRomCurve3(points);
+      const curveGeo = new THREE.BufferGeometry().setFromPoints(curve.getPoints(40));
+      const curveMat = new THREE.LineBasicMaterial({
+        color: silkColors[s % silkColors.length],
+        transparent: true,
+        opacity: 0.45 + Math.random() * 0.35,
+        linewidth: 1
+      });
+      const silkLine = new THREE.Line(curveGeo, curveMat);
+      silkGroup.add(silkLine);
+    }
+    cottonCandyGroup.add(silkGroup);
+
+    // 漂浮在真棉花糖周围的微光砂糖晶粒 (与第 1 页一致的梦幻砂糖光斑)
+    const sparkleCount = 32;
+    const sparkleGeo = new THREE.BufferGeometry();
+    const sparklePos = new Float32Array(sparkleCount * 3);
+    for (let s = 0; s < sparkleCount; s++) {
+      const rad = 4.2 + Math.random() * 3.6;
+      const ang = Math.random() * Math.PI * 2;
+      sparklePos[s * 3] = Math.cos(ang) * rad;
+      sparklePos[s * 3 + 1] = -4.0 + Math.random() * 9.5;
+      sparklePos[s * 3 + 2] = Math.sin(ang) * rad;
+    }
+    sparkleGeo.setAttribute('position', new THREE.BufferAttribute(sparklePos, 3));
+    const sparkleMat = new THREE.PointsMaterial({
+      color: 0xFFFDF0,
+      size: 0.32,
+      transparent: true,
+      opacity: 0.85
+    });
+    const candySparkles = new THREE.Points(sparkleGeo, sparkleMat);
+    cottonCandyGroup.add(candySparkles);
+
+    // 8. 鼠标拖拽旋转控制逻辑 (Orbiting Control)
+    let isDragging = false;
+    let prevMousePos = { x: 0, y: 0 };
+    let targetRotationY = 0.3;
+    let targetRotationX = 0.1;
+
+    container.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      prevMousePos = { x: e.clientX, y: e.clientY };
+    });
+
+    window.addEventListener('mouseup', () => { isDragging = false; });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const deltaX = e.clientX - prevMousePos.x;
+      const deltaY = e.clientY - prevMousePos.y;
+
+      targetRotationY += deltaX * 0.008;
+      targetRotationX += deltaY * 0.005;
+
+      // 限制上下倾角
+      targetRotationX = Math.max(-0.4, Math.min(0.6, targetRotationX));
+
+      prevMousePos = { x: e.clientX, y: e.clientY };
+    });
+
+    // 滚轮缩放
+    container.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      camera.position.z += e.deltaY * 0.02;
+      camera.position.z = Math.max(22, Math.min(46, camera.position.z));
+    }, { passive: false });
+
+    // 9. 动画渲染循环 (60fps)
+    let clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const elapsedTime = clock.getElapsedTime();
+
+      // 1. 转盘持续高速自转 (模拟 2800 RPM)
+      spinnerGroup.rotation.y += 0.15;
+
+      // 2. 糖丝粒子从内向外离心飞出
+      const posAttr = particleGeo.attributes.position;
+      const colAttr = particleGeo.attributes.color;
+
+      for (let i = 0; i < particleCount; i++) {
+        const p = particleData[i];
+        p.radius += p.speed;
+        p.angle += p.rotSpeed;
+
+        if (p.radius > 12.8) {
+          p.radius = 3.6;
+          p.angle = Math.random() * Math.PI * 2;
+          p.speed = 0.12 + Math.random() * 0.14;
+        }
+
+        const curX = Math.cos(p.angle) * p.radius;
+        const curZ = Math.sin(p.angle) * p.radius;
+        const curY = p.baseY + (p.radius - 3.6) * 0.38 + Math.sin(elapsedTime * 4 + i) * 0.25;
+
+        posAttr.setXYZ(i, curX, curY, curZ);
+
+        const prg = (p.radius - 3.6) / 9.2;
+        const c = prg < 0.4 ? colorStart.clone().lerp(colorMid, prg / 0.4) : colorMid.clone().lerp(colorEnd, (prg - 0.4) / 0.6);
+        colAttr.setXYZ(i, c.r, c.g, c.b);
+      }
+      posAttr.needsUpdate = true;
+      colAttr.needsUpdate = true;
+
+      // 3. 成品棉花糖轻微呼吸、悬浮、糖丝流动与自转
+      cottonCandyGroup.rotation.y = elapsedTime * 0.22;
+      cottonCandyGroup.position.y = 15.0 + Math.sin(elapsedTime * 2.2) * 0.35;
+      candyCloudGroup.scale.set(
+        1 + 0.015 * Math.sin(elapsedTime * 2.5),
+        1 + 0.012 * Math.cos(elapsedTime * 2.5),
+        1 + 0.015 * Math.sin(elapsedTime * 2.5)
+      );
+      if (typeof silkGroup !== 'undefined') {
+        silkGroup.rotation.y = -elapsedTime * 0.08;
+      }
+      if (typeof candySparkles !== 'undefined') {
+        candySparkles.rotation.y = -elapsedTime * 0.15;
+      }
+
+      // 4. 视角缓动过渡
+      machineGroup.rotation.y += (targetRotationY - machineGroup.rotation.y) * 0.08;
+      machineGroup.rotation.x += (targetRotationX - machineGroup.rotation.x) * 0.08;
+
+      // 闲置时轻微自动回旋
+      if (!isDragging) {
+        targetRotationY += 0.0018;
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    // 窗口尺寸自适应
+    function updateSize() {
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      if (!w || !h) return;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      camera.lookAt(0, 9.8, 0);
+      renderer.setSize(w, h);
+    }
+    window.addEventListener('resize', updateSize);
+
+    // =========================================================
+    // 页面交互与导航跳转
+    // =========================================================
+    const toastTip = document.getElementById('toastTip');
+    let toastTimer = null;
+
+    function showToast(msg) {
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTip.textContent = msg;
+      toastTip.classList.add('show');
+      toastTimer = setTimeout(() => {
+        toastTip.classList.remove('show');
+      }, 2400);
+    }
+
+    function handleNextPage() {
+      window.location.href = 'page6.html';
+    }
+
+    document.getElementById('nextPageCtaBtn').addEventListener('click', handleNextPage);
+    document.getElementById('navNextBtn').addEventListener('click', handleNextPage);
+  </script>
+</body>
+</html>
